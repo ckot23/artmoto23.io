@@ -1,9 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ru">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#ffffff" />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta content="#ffffff" name="theme-color"/>
 <title>Наклейки на заказ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
@@ -533,118 +534,255 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
   * { transition: none !important; animation: none !important; }
 }
 
+
+
+/* ---------- Responsive studio redesign ---------- */
+:root { --shadow: 0 1px 2px rgba(0,0,0,.05), 0 10px 30px rgba(0,0,0,.06); }
+html { scroll-behavior: smooth; }
+.page { max-width: 1180px; padding: 0 20px 32px; }
+.hero { display: grid; grid-template-columns: minmax(280px, .82fr) 1.18fr; min-height: 360px; margin-top: 20px; box-shadow: var(--shadow); }
+.hero__media { aspect-ratio: auto; min-height: 100%; order: 2; }
+.hero__body { display: flex; flex-direction: column; justify-content: center; padding: 36px; }
+.hero__title { font-size: clamp(30px, 4vw, 52px); line-height: 1.04; letter-spacing: -.035em; }
+.hero__text { max-width: 52ch; font-size: 16px; }
+.hero__sheet { right: 4%; bottom: -24%; width: 72%; height: 128%; transform: rotate(-9deg); }
+.hero__actions { display: flex; gap: 10px; margin-top: 20px; }
+.hero__info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+.hero__info span { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tg-hint); }
+.hero__info b { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--tg-accent); }
+.button, .icon-button { min-height: 44px; border: 0; border-radius: 9px; padding: 0 16px; font: inherit; font-weight: 650; cursor: pointer; transition: transform .15s, background-color .15s, border-color .15s; }
+.button:active, .icon-button:active { transform: scale(.97); }
+.button--primary { background: var(--tg-accent); color: var(--tg-accent-text); }
+.button--secondary { color: var(--tg-text); background: var(--tg-bg); border: 1px solid var(--border); }
+.button--ghost { color: var(--tg-hint); background: transparent; border: 1px solid var(--border); }
+.button--wide { width: 100%; margin-top: 12px; }
+.icon-button { width: auto; padding: 0 12px; background: var(--tg-bg); color: var(--tg-text); border: 1px solid var(--border); font-size: 13px; }
+.usecases { margin: 0 -20px 28px; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 420px; align-items: start; gap: 28px; }
+.builder { min-width: 0; }
+.builder__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.builder__toolbar h2, .studio__head h2 { margin: 2px 0 0; font-size: 23px; letter-spacing: -.02em; }
+.builder__eyebrow { margin: 0; color: var(--tg-accent); font-size: 12px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.progress { height: 4px; margin-bottom: 22px; overflow: hidden; background: var(--surface-2); border-radius: 999px; }
+.progress span { display: block; width: 0; height: 100%; background: var(--tg-accent); transition: width .25s; }
+.block { padding: 22px; margin-bottom: 14px; background: var(--tg-section); border: 1px solid var(--border); border-radius: var(--radius); }
+.option, .field input, .field textarea, .stepper__btn, .stepper input, .chip { background: var(--tg-bg); }
+.options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.option { min-height: 72px; }
+.segmented { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; margin-bottom: 14px; background: var(--surface-2); border-radius: 10px; }
+.segmented__btn { min-height: 40px; padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--tg-hint); font: inherit; font-size: 13px; cursor: pointer; }
+.segmented__btn[aria-pressed="true"] { color: var(--tg-text); background: var(--tg-bg); box-shadow: 0 1px 3px rgba(0,0,0,.08); font-weight: 650; }
+.range { width: 100%; margin: 0 0 14px; accent-color: var(--tg-accent); cursor: pointer; }
+.studio { min-width: 0; }
+.studio__sticky { position: sticky; top: 18px; padding: 22px; background: var(--tg-section); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.studio__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.preview-stage { position: relative; display: grid; place-items: center; height: 360px; overflow: hidden; background: var(--tg-bg); border: 1px solid var(--border); border-radius: 10px; }
+.preview-grid { position: absolute; inset: 0; opacity: .45; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 24px 24px; }
+.sticker-preview { position: relative; z-index: 1; display: grid; place-items: center; width: 220px; height: 150px; padding: 16px; overflow: hidden; color: #fff; background: #2c2c2b; border: 2px solid rgba(255,255,255,.65); border-radius: 5px; box-shadow: 0 18px 34px rgba(0,0,0,.16); transform: rotate(-3deg); transition: width .25s, height .25s, border-radius .25s, background .25s, transform .25s; }
+.sticker-preview span { max-width: 100%; font-size: 18px; font-weight: 850; letter-spacing: .05em; text-align: center; overflow-wrap: anywhere; text-shadow: 0 1px 2px rgba(0,0,0,.32); }
+.sticker-preview.is-rotated { transform: rotate(8deg); }
+.measure { position: absolute; z-index: 2; padding: 3px 7px; background: var(--tg-section); border: 1px solid var(--border); border-radius: 5px; color: var(--tg-hint); font-size: 11px; }
+.measure--w { bottom: 12px; left: 50%; transform: translateX(-50%); }
+.measure--h { right: 10px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+.preview-meta { display: flex; justify-content: space-between; gap: 10px; margin: 12px 0 18px; color: var(--tg-hint); font-size: 13px; }
+.studio .summary { background: var(--tg-bg); }
+.pricebar { max-width: 1180px; padding-left: 24px; padding-right: 24px; box-shadow: 0 -8px 24px rgba(0,0,0,.05); }
+.option:hover, .chip:hover, .swatch:hover, .button--secondary:hover, .button--ghost:hover, .icon-button:hover { border-color: var(--tg-accent); }
+.segmented__btn:focus-visible, .button:focus-visible, .icon-button:focus-visible, .range:focus-visible { outline: 2px solid var(--tg-accent); outline-offset: 2px; }
+@media (min-width: 900px) { body { padding-bottom: 104px; } .swatches { grid-template-columns: repeat(10, 1fr); } }
+@media (max-width: 899px) {
+  .page { max-width: 600px; padding: 0 16px 24px; }
+  .hero { display: block; min-height: 0; margin-top: 12px; }
+  .hero__media { min-height: 180px; aspect-ratio: 16 / 8; order: initial; }
+  .hero__body { display: block; padding: 18px; }
+  .hero__title { font-size: 27px; }
+  .hero__actions { margin-top: 16px; }
+  .hero__actions .button { flex: 1; padding: 0 10px; font-size: 14px; }
+  .hero__info { grid-template-columns: 1fr; }
+  .usecases { margin-left: -16px; margin-right: -16px; }
+  .workspace { display: flex; flex-direction: column; gap: 14px; }
+  .workspace__form, .studio { width: 100%; }
+  .block { padding: 16px; margin-bottom: 12px; }
+  .options { grid-template-columns: 1fr; }
+  .studio__sticky { position: static; padding: 16px; box-shadow: none; }
+  .preview-stage { height: 280px; }
+  .studio { order: 2; }
+  .builder__toolbar h2, .studio__head h2 { font-size: 20px; }
+  .pricebar { max-width: 600px; }
+}
+@media (max-width: 420px) {
+  .segmented { grid-template-columns: 1fr; }
+  .segmented__btn { min-height: 38px; }
+  .builder__toolbar .button { padding: 0 12px; }
+}
+
+:root{--text:#f3fbfa;--text-soft:rgba(224,246,244,.68);--canvas:#040708;--surface:rgba(8,17,18,.78);--surface-2:rgba(20,46,47,.72);--border:rgba(130,238,230,.17);--accent:#2bd9cd;--accent-soft:rgba(43,217,205,.14);--tg-text:var(--text);--tg-hint:var(--text-soft);--tg-bg:transparent;--tg-section:var(--surface);--tg-accent:var(--accent);--tg-accent-text:#03100f}html{background:#040708}body{min-height:100vh;background:radial-gradient(circle at 18% 88%,rgba(36,236,218,.3),transparent 34%),radial-gradient(circle at 82% 72%,rgba(12,143,145,.24),transparent 30%),linear-gradient(to top,#16bdb4 0%,#076d6b 18%,#07393a 42%,#071416 68%,#030506 100%);background-attachment:fixed}body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-2;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to top,#000,transparent 72%)}.ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}.ambient i{position:absolute;width:260px;height:260px;border-radius:50%;border:1px solid rgba(110,255,244,.22);background:radial-gradient(circle at 35% 30%,rgba(117,255,245,.38),transparent 65%);animation:float 12s ease-in-out infinite alternate}.ambient i:first-child{left:-80px;top:25%}.ambient i:nth-child(2){width:380px;height:380px;right:-160px;top:58%;animation-duration:17s}.ambient b{position:absolute;left:25%;top:48%;width:50vw;height:1px;background:linear-gradient(90deg,transparent,rgba(90,255,242,.42),transparent);box-shadow:0 0 24px rgba(40,217,204,.4);animation:drift 10s ease-in-out infinite alternate}@keyframes float{to{transform:translate(35px,40px) scale(1.1)}}@keyframes drift{to{transform:translateX(18%) rotate(4deg)}}.hero,.block,.studio__sticky{background:linear-gradient(145deg,rgba(13,24,25,.9),rgba(4,10,11,.74));border-color:rgba(108,239,229,.17);box-shadow:0 22px 60px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.04);backdrop-filter:blur(18px)}.hero__media{background:radial-gradient(circle at 25% 25%,#3ce4d7 0,#0d8985 24%,#073032 58%,#030607 100%)}.hero__sheet{background:linear-gradient(135deg,rgba(150,255,247,.3),rgba(39,207,196,.05));border-color:rgba(190,255,250,.32);animation:sheet 7s ease-in-out infinite alternate}.hero__drop{background:rgba(118,255,245,.18);border-color:rgba(190,255,250,.35);animation:drop 5s ease-in-out infinite alternate}@keyframes sheet{to{transform:rotate(-6deg) translate(12px,-10px)}}@keyframes drop{to{transform:translateY(14px)}}.badge,.chip,.option,.field input,.field textarea,.stepper__btn,.stepper input,.summary,.button--secondary,.button--ghost,.icon-button{background:rgba(5,13,14,.72);border-color:rgba(141,234,227,.17)}.option[aria-checked=true],.chip[aria-checked=true],.chip[aria-pressed=true]{background:rgba(40,217,204,.13)}.button--primary,.pricebar__cta{background:linear-gradient(135deg,#43e6d8,#20bdb5);color:#03110f;box-shadow:0 10px 30px rgba(22,205,193,.24)}.pricebar{background:rgba(2,7,8,.9);border-color:rgba(119,231,223,.16);backdrop-filter:blur(18px)}.progress{background:rgba(255,255,255,.08)}.progress span{background:linear-gradient(90deg,#37f0e2,#1f9c9c);box-shadow:0 0 14px rgba(40,217,204,.5)}.preview-stage{perspective:1100px;cursor:grab;touch-action:none;background:radial-gradient(circle at 50% 42%,rgba(37,205,194,.19),rgba(3,9,10,.9) 64%);border-color:rgba(128,237,229,.2)}.preview-stage:active{cursor:grabbing}.preview-grid{opacity:.2}.drag-hint{position:absolute;z-index:5;top:12px;left:50%;transform:translateX(-50%);width:max-content;margin:0;padding:6px 10px;color:rgba(225,250,248,.7);background:rgba(2,9,10,.62);border:1px solid var(--border);border-radius:7px;font-size:11px;pointer-events:none}.sticker-preview{--rx:-10deg;--ry:-14deg;--rz:-3deg;--sx:35%;--sy:25%;overflow:visible;transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz));transition:width .25s,height .25s,border-radius .25s,background .25s,transform .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 38px 58px rgba(0,0,0,.48),0 0 45px rgba(36,216,204,.12);border:1px solid rgba(255,255,255,.75)}.sticker-preview:before{content:"";position:absolute;inset:0;z-index:-2;border-radius:inherit;background:#0b1112;transform:translateZ(-11px)}.sticker-preview:after{content:"";position:absolute;inset:-1px;z-index:-1;border-radius:inherit;background:linear-gradient(90deg,#293435,#080d0e);transform:translateZ(-5px)}.sticker-preview.is-dragging{transition:width .25s,height .25s,border-radius .25s,background .25s}.sticker-preview.is-rotated{transform:rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(8deg)}.sticker-preview span{position:relative;z-index:3;transform:translateZ(5px)}.film-shine{position:absolute;inset:0;z-index:2;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at var(--sx) var(--sy),rgba(255,255,255,.55),rgba(255,255,255,.1) 18%,transparent 44%),linear-gradient(115deg,transparent 20%,rgba(255,255,255,.16) 48%,transparent 70%);mix-blend-mode:screen}.film-corner{position:absolute;right:-1px;bottom:-1px;z-index:4;width:48px;height:48px;border-radius:70% 0 0;background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(211,236,233,.18) 48%,rgba(0,0,0,.15) 51%);transform:translateZ(9px)}.model-palette{margin:0 0 16px;padding:13px;background:rgba(3,10,11,.65);border:1px solid var(--border);border-radius:10px}.model-palette p{margin:0 0 9px;color:var(--tg-hint);font-size:12px}.model-palette>div{display:flex;gap:9px}.model-palette button{width:38px;height:38px;padding:4px;border:1px solid rgba(255,255,255,.2);border-radius:9px;background:transparent;cursor:pointer;transition:.16s}.model-palette button:after{content:"";display:block;width:100%;height:100%;border-radius:6px;background:var(--c)}.model-palette button:hover,.model-palette button[aria-pressed=true]{transform:translateY(-3px);border-color:#51e9dd;box-shadow:0 8px 20px rgba(30,210,198,.18)}.studio .summary{background:rgba(3,10,11,.65)!important}@media(max-width:899px){body{background:radial-gradient(circle at 20% 88%,rgba(35,234,217,.3),transparent 36%),linear-gradient(to top,#119f99 0,#064e4f 24%,#06191b 56%,#030506 100%);background-attachment:fixed}.studio{order:0}.preview-stage{height:330px}.model-palette>div{justify-content:space-between}.model-palette button{width:40px;height:40px}}@media(prefers-reduced-motion:reduce){.ambient *,.hero__sheet,.hero__drop{animation:none!important}.sticker-preview{transition:none!important}}
+
+/* ---------- Product and seller information ---------- */
+.trust-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:16px;margin:0 0 28px}.trust-card{display:flex;gap:16px;min-height:220px;padding:24px;background:linear-gradient(145deg,rgba(10,24,25,.88),rgba(3,10,11,.72));border:1px solid rgba(117,235,226,.18);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.18);backdrop-filter:blur(16px)}.trust-card__icon{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border:1px solid rgba(69,238,225,.34);border-radius:11px;color:#4ceade;background:rgba(42,217,205,.12);font-size:20px;font-weight:850}.trust-card__eyebrow{margin:0 0 4px;color:#42e5d8;font-size:11px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}.trust-card h2{margin:0 0 9px;color:var(--tg-text);font-size:21px;letter-spacing:-.02em}.trust-card p{margin:0;color:var(--tg-hint);font-size:14px}.trust-list{display:grid;gap:6px;margin:14px 0 0;padding:0;list-style:none;color:var(--tg-hint);font-size:13px}.trust-list li{position:relative;padding-left:18px}.trust-list li:before{content:'✓';position:absolute;left:0;color:#43e5d8;font-weight:800}.seller-actions{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:16px}.seller-link{display:inline-flex;align-items:center;min-height:42px;max-width:100%;padding:0 13px;border:1px solid rgba(130,238,230,.2);border-radius:9px;color:var(--tg-text);background:rgba(3,11,12,.66);font-size:13px;font-weight:650;text-decoration:none;overflow-wrap:anywhere;transition:transform .16s,border-color .16s,background .16s}.seller-link:hover{transform:translateY(-2px);border-color:#43e5d8;background:rgba(42,217,205,.1)}.seller-link--primary{color:#03110f;background:linear-gradient(135deg,#43e6d8,#20bdb5);border-color:transparent}.base-rate{display:flex;align-items:center;gap:10px;margin:-6px 0 18px;padding:11px 13px;border:1px solid rgba(104,234,224,.17);border-radius:9px;background:rgba(3,11,12,.56);color:var(--tg-hint);font-size:12px}.base-rate b{color:#4ceade;font-size:16px}.base-rate span{line-height:1.25}@media(max-width:760px){.trust-grid{grid-template-columns:1fr;margin-bottom:22px}.trust-card{min-height:0;padding:18px}.trust-card__icon{flex-basis:42px;width:42px;height:42px}.seller-link{width:100%}}@media(max-width:420px){.trust-card{gap:12px}.trust-card h2{font-size:19px}.trust-card p,.trust-list{font-size:12.5px}}
 </style>
 </head>
 <body>
-<main class="page">
+<div aria-hidden="true" class="ambient"><i></i><i></i><b></b></div><main class="page">
+<header class="hero">
+<div aria-hidden="true" class="hero__media">
+<span class="hero__sheet"></span>
+<span class="hero__drop hero__drop--1"></span>
+<span class="hero__drop hero__drop--2"></span>
+<span class="hero__drop hero__drop--3"></span>
+</div>
+<div class="hero__body">
+<p class="hero__eyebrow">Немецкая плёнка Oracal</p>
+<h1 class="hero__title">Наклейки любого размера на заказ</h1>
+<p class="hero__text">От стикера на чехол телефона до рекламного логотипа на окне многоэтажки.</p>
+<ul class="badges">
+<li class="badge"><span aria-hidden="true">💧</span> Не боится воды</li>
+<li class="badge"><span aria-hidden="true">☀️</span> До 7 лет на улице</li>
+<li class="badge"><span aria-hidden="true">📏</span> От 1 см до 5 м</li>
+</ul>
+<div class="hero__actions">
+<button class="button button--primary" id="start-builder" type="button">Собрать наклейку</button>
+<button aria-expanded="false" class="button button--secondary" id="toggle-info" type="button">Как это работает</button>
+</div>
+<div class="hero__info" hidden="" id="hero-info">
+<span><b>1</b> Настройте</span><span><b>2</b> Узнайте цену</span><span><b>3</b> Отправьте заказ</span>
+</div>
+</div>
+</header>
+<section aria-label="Примеры применения" class="usecases">
+<div class="usecases__scroll">
+<span class="chip chip--static">📱 Чехол</span>
+<span class="chip chip--static">💻 Ноутбук</span>
+<span class="chip chip--static">🚗 Авто</span>
+<span class="chip chip--static">🏪 Витрина</span>
+<span class="chip chip--static">🏢 Фасад</span>
+<span class="chip chip--static">🪖 Шлем</span>
+<span class="chip chip--static">📦 Упаковка</span>
+</div>
+</section>
+<section aria-label="Информация о плёнке и продавце" class="trust-grid">
+<article class="trust-card trust-card--film">
+<div aria-hidden="true" class="trust-card__icon">O</div>
+<div>
+<p class="trust-card__eyebrow">Материал</p>
+<h2>Плёнка ORACAL</h2>
+<p>Самоклеящаяся виниловая плёнка бренда ORACAL от немецкого производителя ORAFOL. Подходит для наклеек, витрин, автомобилей, техники и наружного оформления.</p>
+<ul class="trust-list">
+<li>Устойчива к воде и погодным условиям</li>
+<li>Сохраняет цвет при правильной эксплуатации</li>
+<li>Срок службы зависит от серии, поверхности и условий</li>
+</ul>
+</div>
+</article>
+<article class="trust-card trust-card--seller">
+<div aria-hidden="true" class="trust-card__icon">@</div>
+<div>
+<p class="trust-card__eyebrow">Продавец</p>
+<h2>Связаться напрямую</h2>
+<p>Помогу выбрать материал, проверить макет и рассчитать нестандартный заказ.</p>
+<div class="seller-actions">
+<a class="seller-link seller-link--primary" href="https://t.me/ckot_23" rel="noopener" target="_blank">Telegram · @ckot_23</a>
+<a class="seller-link" href="mailto:andreydragon22813@gmail.com">andreydragon22813@gmail.com</a>
+</div>
+</div>
+</article>
+</section>
 
-  <header class="hero">
-    <div class="hero__media" aria-hidden="true">
-      <span class="hero__sheet"></span>
-      <span class="hero__drop hero__drop--1"></span>
-      <span class="hero__drop hero__drop--2"></span>
-      <span class="hero__drop hero__drop--3"></span>
-    </div>
-    <div class="hero__body">
-      <p class="hero__eyebrow">Немецкая плёнка Oracal</p>
-      <h1 class="hero__title">Наклейки любого размера на заказ</h1>
-      <p class="hero__text">От стикера на чехол телефона до рекламного логотипа на окне многоэтажки.</p>
-      <ul class="badges">
-        <li class="badge"><span aria-hidden="true">💧</span> Не боится воды</li>
-        <li class="badge"><span aria-hidden="true">☀️</span> До 7 лет на улице</li>
-        <li class="badge"><span aria-hidden="true">📏</span> От 1 см до 5 м</li>
-      </ul>
-    </div>
-  </header>
-
-  <section class="usecases" aria-label="Примеры применения">
-    <div class="usecases__scroll">
-      <span class="chip chip--static">📱 Чехол</span>
-      <span class="chip chip--static">💻 Ноутбук</span>
-      <span class="chip chip--static">🚗 Авто</span>
-      <span class="chip chip--static">🏪 Витрина</span>
-      <span class="chip chip--static">🏢 Фасад</span>
-      <span class="chip chip--static">🪖 Шлем</span>
-      <span class="chip chip--static">📦 Упаковка</span>
-    </div>
-  </section>
-
-  <form class="builder" id="builder" novalidate>
-
-    <section class="block">
-      <h2 class="block__title"><span class="step">1</span> Материал</h2>
-      <div class="options" id="films" role="radiogroup" aria-label="Тип плёнки"></div>
-    </section>
-
-    <section class="block">
-      <h2 class="block__title"><span class="step">2</span> Дизайн</h2>
-      <div class="options" id="designs" role="radiogroup" aria-label="Вариант дизайна"></div>
-      <label class="field">
-        <span class="field__label" id="design-hint-label">Комментарий к дизайну</span>
-        <textarea id="comment" rows="2" maxlength="600" placeholder="Например: надпись «Open 24/7», шрифт пожирнее"></textarea>
-      </label>
-    </section>
-
-    <section class="block">
-      <h2 class="block__title"><span class="step">3</span> Цвет</h2>
-      <div class="swatches" id="colors" role="radiogroup" aria-label="Цвет плёнки"></div>
-      <p class="note" id="color-note">Выбрано: Чёрный</p>
-    </section>
-
-    <section class="block">
-      <h2 class="block__title"><span class="step">4</span> Размер</h2>
-      <div class="chips" id="sizes" role="radiogroup" aria-label="Готовые размеры"></div>
-      <div class="dims">
-        <label class="field field--inline">
-          <span class="field__label">Ширина, см</span>
-          <input id="width" type="number" inputmode="decimal" min="1" max="500" step="0.5" value="10" />
-        </label>
-        <span class="dims__x" aria-hidden="true">×</span>
-        <label class="field field--inline">
-          <span class="field__label">Высота, см</span>
-          <input id="height" type="number" inputmode="decimal" min="1" max="500" step="0.5" value="10" />
-        </label>
-      </div>
-      <p class="note" id="size-note"></p>
-    </section>
-
-    <section class="block">
-      <h2 class="block__title"><span class="step">5</span> Количество</h2>
-      <div class="stepper">
-        <button type="button" class="stepper__btn" id="qty-minus" aria-label="Уменьшить тираж">−</button>
-        <input id="quantity" type="number" inputmode="numeric" min="1" max="10000" value="10" aria-label="Тираж, штук" />
-        <button type="button" class="stepper__btn" id="qty-plus" aria-label="Увеличить тираж">+</button>
-      </div>
-      <div class="chips" id="quantities" role="group" aria-label="Готовые тиражи"></div>
-      <p class="note" id="qty-note"></p>
-    </section>
-
-    <section class="block">
-      <h2 class="block__title"><span class="step">6</span> Контакт</h2>
-      <label class="field">
-        <span class="field__label">Телефон, email или @username</span>
-        <input id="contact" type="text" maxlength="120" placeholder="+7 900 000-00-00" />
-      </label>
-      <p class="note">Макет можно будет прислать файлом в чат сразу после заказа.</p>
-    </section>
-
-    <section class="summary" aria-live="polite">
-      <h2 class="summary__title">Состав заказа</h2>
-      <dl class="summary__list" id="summary-list"></dl>
-    </section>
-
-  </form>
-
-  <div class="pricebar">
-    <div class="pricebar__info">
-      <span class="pricebar__label" id="price-label">Итого</span>
-      <strong class="pricebar__value" id="price-value">—</strong>
-    </div>
-    <button type="button" class="pricebar__cta" id="submit">Оформить заказ</button>
-  </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-
+<div class="workspace"><form class="builder workspace__form" id="builder" novalidate="">
+<div class="builder__toolbar">
+<div><p class="builder__eyebrow">Онлайн-конструктор</p><h2>Настройте заказ</h2></div>
+<button class="button button--ghost" id="reset-builder" type="button">Сбросить</button>
+</div><p class="base-rate"><b>5 ₽/см²</b><span>базовая цена матовой плёнки · минимальный заказ 300 ₽</span></p>
+<div aria-label="Прогресс заполнения" class="progress"><span id="progress-fill"></span></div>
+<section class="block">
+<h2 class="block__title"><span class="step">1</span> Материал</h2>
+<div aria-label="Тип плёнки" class="options" id="films" role="radiogroup"></div>
+</section>
+<section class="block">
+<h2 class="block__title"><span class="step">2</span> Дизайн</h2>
+<div aria-label="Вариант дизайна" class="options" id="designs" role="radiogroup"></div>
+<label class="field">
+<span class="field__label" id="design-hint-label">Комментарий к дизайну</span>
+<textarea id="comment" maxlength="600" placeholder="Например: надпись «Open 24/7», шрифт пожирнее" rows="2"></textarea>
+</label>
+</section>
+<section class="block">
+<h2 class="block__title"><span class="step">3</span> Цвет</h2>
+<div aria-label="Цвет плёнки" class="swatches" id="colors" role="radiogroup"></div>
+<p class="note" id="color-note">Выбрано: Чёрный</p>
+</section>
+<section class="block">
+<h2 class="block__title"><span class="step">4</span> Размер</h2>
+<div aria-label="Форма наклейки" class="segmented" id="shapes" role="group">
+<button aria-pressed="true" class="segmented__btn" data-shape="rectangle" type="button">Прямоугольник</button>
+<button aria-pressed="false" class="segmented__btn" data-shape="rounded" type="button">Скруглённая</button>
+<button aria-pressed="false" class="segmented__btn" data-shape="circle" type="button">Круглая</button>
+</div>
+<div aria-label="Готовые размеры" class="chips" id="sizes" role="radiogroup"></div>
+<div class="dims">
+<label class="field field--inline">
+<span class="field__label">Ширина, см</span>
+<input id="width" inputmode="decimal" max="500" min="1" step="0.5" type="number" value="10"/>
+</label>
+<span aria-hidden="true" class="dims__x">×</span>
+<label class="field field--inline">
+<span class="field__label">Высота, см</span>
+<input id="height" inputmode="decimal" max="500" min="1" step="0.5" type="number" value="10"/>
+</label>
+</div>
+<p class="note" id="size-note"></p>
+</section>
+<section class="block">
+<h2 class="block__title"><span class="step">5</span> Количество</h2>
+<div class="stepper">
+<button aria-label="Уменьшить тираж" class="stepper__btn" id="qty-minus" type="button">−</button>
+<input aria-label="Тираж, штук" id="quantity" inputmode="numeric" max="10000" min="1" type="number" value="10"/>
+<button aria-label="Увеличить тираж" class="stepper__btn" id="qty-plus" type="button">+</button>
+</div><input aria-label="Тираж ползунком" class="range" id="quantity-range" max="100" min="1" type="range" value="10"/>
+<div aria-label="Готовые тиражи" class="chips" id="quantities" role="group"></div>
+<p class="note" id="qty-note"></p>
+</section>
+<section class="block">
+<h2 class="block__title"><span class="step">6</span> Telegram для связи</h2>
+<label class="field">
+<span class="field__label">Ваш username в Telegram</span>
+<input id="contact" autocomplete="username" inputmode="text" maxlength="33" placeholder="@username" type="text"/>
+</label>
+<p class="note">Нужен только Telegram username — менеджер напишет вам по заказу.</p>
+<p class="note">Макет можно будет прислать файлом в чат сразу после заказа.</p>
+</section>
+</form>
+<aside aria-label="Предпросмотр заказа" class="studio">
+<div class="studio__sticky">
+<div class="studio__head">
+<div><p class="builder__eyebrow">Предпросмотр</p><h2>Ваша наклейка</h2></div>
+<button aria-label="Повернуть наклейку" class="icon-button" id="rotate-preview" title="Повернуть" type="button">Повернуть</button>
+</div>
+<div class="preview-stage"><p class="drag-hint">↔ Зажмите и вращайте модель</p>
+<div aria-hidden="true" class="preview-grid"></div>
+<div aria-label="Интерактивная 3D-модель наклейки" class="sticker-preview" id="sticker-preview" tabindex="0"><i class="film-shine"></i><i class="film-corner"></i>
+<span id="preview-text">ВАША НАКЛЕЙКА</span>
+</div>
+<span class="measure measure--w" id="preview-width">10 см</span>
+<span class="measure measure--h" id="preview-height">10 см</span>
+</div>
+<div class="preview-meta">
+<span id="preview-material">Матовая</span><span id="preview-color">Чёрный</span>
+</div><div class="model-palette"><p>Цвет 3D-модели</p><div><button aria-label="Чёрный" data-model-color="black" style="--c:#202325"></button><button aria-label="Белый" data-model-color="white" style="--c:#f5f7f7"></button><button aria-label="Красный" data-model-color="red" style="--c:#ef3f4f"></button><button aria-label="Синий" data-model-color="blue" style="--c:#3489ff"></button><button aria-label="Золото" data-model-color="gold" style="--c:#d7a93c"></button><button aria-label="Полноцвет" data-model-color="fullcolor" style="--c:conic-gradient(#ef3f4f,#ffd84a,#26d9c7,#3489ff,#ef3f4f)"></button></div></div>
+<section aria-live="polite" class="summary">
+<h2 class="summary__title">Состав заказа</h2>
+<dl class="summary__list" id="summary-list"></dl>
+</section><button class="button button--secondary button--wide" id="copy-estimate" type="button">Скопировать расчёт</button></div>
+</aside>
+</div>
+<div class="pricebar">
+<div class="pricebar__info">
+<span class="pricebar__label" id="price-label">Итого</span>
+<strong class="pricebar__value" id="price-value">—</strong>
+</div>
+<button class="pricebar__cta" id="submit" type="button">Оформить заказ</button>
+</div>
+<div aria-live="polite" class="toast" hidden="" id="toast" role="status"></div>
 </main>
 <script>
 /* Mini App «Наклейки на заказ». Без сборщиков и зависимостей. */
@@ -656,11 +794,11 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
   /* ---------- Прайс (зеркало bot/pricing.py) ---------- */
 
   var FILMS = [
-    { id: "matte", name: "Матовая", desc: "Без бликов, универсальная", rate: 2.2 },
-    { id: "gloss", name: "Глянцевая", desc: "Яркие цвета, легко моется", rate: 2.4 },
-    { id: "transparent", name: "Прозрачная", desc: "Для стекла и витрин", rate: 2.8 },
-    { id: "metallic", name: "Металлик", desc: "Зеркальный эффект", rate: 3.5 },
-    { id: "reflective", name: "Светоотражающая", desc: "Видно в свете фар", rate: 4.2 }
+    { id: "matte", name: "Матовая", desc: "Без бликов, универсальная", rate: 5.0 },
+    { id: "gloss", name: "Глянцевая", desc: "Яркие цвета, легко моется", rate: 5.5 },
+    { id: "transparent", name: "Прозрачная", desc: "Для стекла и витрин", rate: 6.0 },
+    { id: "metallic", name: "Металлик", desc: "Зеркальный эффект", rate: 7.0 },
+    { id: "reflective", name: "Светоотражающая", desc: "Видно в свете фар", rate: 8.0 }
   ];
 
   var DESIGNS = [
@@ -701,7 +839,8 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
 
   var QUANTITIES = [1, 5, 10, 25, 50, 100];
   var TIERS = [[100, 0.6], [50, 0.68], [25, 0.75], [10, 0.82], [5, 0.9], [1, 1]];
-  var MIN_ITEM_PRICE = 300;
+  var MIN_ITEM_PRICE = 0;
+  var MIN_ORDER_PRICE = 300;
 
   function byId(list, id) {
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
@@ -719,9 +858,12 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
     var area = s.width * s.height;
     var colorMult = COLOR_MULT[s.color] || 1;
     var rawUnit = area * film.rate * design.mult * colorMult;
-    var unit = Math.max(MIN_ITEM_PRICE, Math.round(rawUnit / 10) * 10);
+    var unit = Math.max(MIN_ITEM_PRICE, Math.round(rawUnit / 5) * 5);
     var discount = quantityMultiplier(s.quantity);
-    var total = Math.round(unit * s.quantity * discount / 10) * 10 + design.setup;
+    var total = Math.max(
+      MIN_ORDER_PRICE,
+      Math.round(unit * s.quantity * discount / 5) * 5 + design.setup
+    );
     return {
       unit: unit,
       setup: design.setup,
@@ -882,7 +1024,10 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
     if (!(state.width >= 1 && state.width <= 500)) return "Ширина: от 1 до 500 см";
     if (!(state.height >= 1 && state.height <= 500)) return "Высота: от 1 до 500 см";
     if (!(state.quantity >= 1 && state.quantity <= 10000)) return "Тираж: от 1 до 10 000 шт";
-    if (state.contact.trim().length < 4) return "Укажите контакт для связи";
+    var telegram = state.contact.trim();
+    if (!/^@?[A-Za-z0-9_]{5,32}$/.test(telegram)) {
+      return "Укажите Telegram username, например @username";
+    }
     return null;
   }
 
@@ -936,7 +1081,7 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
       el.qtyNote.textContent = "Скидка за тираж: \u2212" + price.discountPercent + "%";
       el.qtyNote.className = "note note--accent";
     } else {
-      el.qtyNote.textContent = "От 5 шт — скидка 10%, от 100 шт — 40%";
+      el.qtyNote.textContent = "База: 5 ₽/см². От 5 шт — скидка 10%, от 100 шт — 40%";
       el.qtyNote.className = "note";
     }
 
@@ -1030,7 +1175,9 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
       h: state.height,
       qty: state.quantity,
       comment: state.comment.slice(0, 600),
-      contact: state.contact.slice(0, 120),
+      contact: (state.contact.trim().charAt(0) === "@"
+        ? state.contact.trim()
+        : "@" + state.contact.trim()).slice(0, 33),
       client_total: price.total
     };
 
@@ -1083,5 +1230,106 @@ body.has-mainbutton .pricebar { justify-content: space-between; }
 })();
 
 </script>
-</body>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var preview = $("sticker-preview");
+  var range = $("quantity-range");
+  var qty = $("quantity");
+  var shape = "rectangle";
+  var colorFallbacks = {
+    black: "#2c2c2b", white: "#ffffff", red: "#e5352b", blue: "#1b5fc1",
+    green: "#2f8f4f", yellow: "#f2c31b", orange: "#ef7a1a",
+    silver: "linear-gradient(135deg,#e8e8e8,#929292,#f2f2f2)",
+    gold: "linear-gradient(135deg,#f5d47a,#b8801d,#f7e3a1)",
+    fullcolor: "conic-gradient(from 210deg,#e5352b,#f2c31b,#2f8f4f,#1b5fc1,#8e44ad,#e5352b)"
+  };
+  function selected(container, selector) {
+    var node = $(container).querySelector(selector + '[aria-checked="true"]');
+    return node || $(container).querySelector(selector);
+  }
+  function labelFromOption(node) {
+    var label = node && node.querySelector(".option__name");
+    return label ? label.textContent : "—";
+  }
+  function updatePreview() {
+    var w = Math.max(1, parseFloat($("width").value) || 10);
+    var h = Math.max(1, parseFloat($("height").value) || 10);
+    var ratio = shape === "circle" ? 1 : Math.max(.35, Math.min(2.8, w / h));
+    var maxW = window.innerWidth < 900 ? 205 : 250;
+    var maxH = window.innerWidth < 900 ? 165 : 220;
+    var pw, ph;
+    if (ratio >= 1) { pw = maxW; ph = Math.max(78, maxW / ratio); }
+    else { ph = maxH; pw = Math.max(78, maxH * ratio); }
+    preview.style.width = pw + "px";
+    preview.style.height = ph + "px";
+    preview.style.borderRadius = shape === "circle" ? "50%" : shape === "rounded" ? "24px" : "5px";
+    var colorNode = selected("colors", ".swatch");
+    var colorId = colorNode ? colorNode.dataset.id : "black";
+    preview.style.background = colorFallbacks[colorId] || "#2c2c2b";
+    preview.style.color = ["white", "yellow", "silver", "gold"].indexOf(colorId) >= 0 ? "#232323" : "#fff";
+    var comment = $("comment").value.trim();
+    $("preview-text").textContent = comment ? comment.slice(0, 42) : "ВАША НАКЛЕЙКА";
+    $("preview-width").textContent = w + " см";
+    $("preview-height").textContent = h + " см";
+    $("preview-material").textContent = labelFromOption(selected("films", ".option"));
+    var colorName = colorNode ? colorNode.getAttribute("aria-label") : "Чёрный";
+    $("preview-color").textContent = colorName;
+    var contactReady = /^@?[A-Za-z0-9_]{5,32}$/.test($("contact").value.trim());
+    $("progress-fill").style.width = contactReady ? "100%" : comment ? "82%" : "68%";
+    range.value = Math.min(100, Math.max(1, parseInt(qty.value, 10) || 1));
+  }
+  $("shapes").addEventListener("click", function (event) {
+    var button = event.target.closest("button[data-shape]");
+    if (!button) return;
+    shape = button.dataset.shape;
+    $("shapes").querySelectorAll("button").forEach(function (item) {
+      item.setAttribute("aria-pressed", item === button ? "true" : "false");
+    });
+    updatePreview();
+  });
+  range.addEventListener("input", function () {
+    qty.value = range.value;
+    qty.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  $("start-builder").addEventListener("click", function () {
+    $("builder").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  $("toggle-info").addEventListener("click", function () {
+    var info = $("hero-info");
+    var opening = info.hidden;
+    info.hidden = !opening;
+    this.setAttribute("aria-expanded", opening ? "true" : "false");
+    this.textContent = opening ? "Скрыть этапы" : "Как это работает";
+  });
+  $("rotate-preview").addEventListener("click", function () {
+    preview.classList.toggle("is-rotated");
+  });
+  $("reset-builder").addEventListener("click", function () {
+    var click = function (selector) { var n = document.querySelector(selector); if (n) n.click(); };
+    click('#films [data-id="matte"]'); click('#designs [data-id="own"]'); click('#colors [data-id="black"]');
+    $("width").value = 10; $("height").value = 10; qty.value = 10; range.value = 10;
+    $("comment").value = ""; $("contact").value = "";
+    [$("width"), $("height"), qty, $("comment"), $("contact")].forEach(function (n) { n.dispatchEvent(new Event("input", { bubbles: true })); });
+    document.querySelector('#shapes [data-shape="rectangle"]').click();
+    preview.classList.remove("is-rotated");
+    updatePreview();
+  });
+  $("copy-estimate").addEventListener("click", function () {
+    var rows = Array.from(document.querySelectorAll("#summary-list dt, #summary-list dd")).map(function (n) { return n.textContent; });
+    var lines = [];
+    for (var i = 0; i < rows.length; i += 2) lines.push(rows[i] + ": " + (rows[i + 1] || ""));
+    var text = "Расчёт наклеек\n" + lines.join("\n");
+    var button = this;
+    function done() { button.textContent = "Расчёт скопирован ✓"; setTimeout(function () { button.textContent = "Скопировать расчёт"; }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(done); else done();
+  });
+  document.addEventListener("click", function () { setTimeout(updatePreview, 0); });
+  document.addEventListener("input", function () { setTimeout(updatePreview, 0); });
+  window.addEventListener("resize", updatePreview);
+  updatePreview();
+})();
+</script><script>(function(){"use strict";var st=document.querySelector('.preview-stage'),m=document.getElementById('sticker-preview');if(!st||!m)return;var d=false,x=0,y=0,rx=-10,ry=-14,a=rx,b=ry;function draw(){m.style.setProperty('--rx',rx+'deg');m.style.setProperty('--ry',ry+'deg')}st.onpointerdown=function(e){d=true;x=e.clientX;y=e.clientY;a=rx;b=ry;m.classList.add('is-dragging');st.setPointerCapture&&st.setPointerCapture(e.pointerId)};st.onpointermove=function(e){var r=st.getBoundingClientRect();m.style.setProperty('--sx',Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100))+'%');m.style.setProperty('--sy',Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))+'%');if(!d)return;ry=Math.max(-65,Math.min(65,b+(e.clientX-x)*.34));rx=Math.max(-55,Math.min(55,a-(e.clientY-y)*.3));draw()};function up(){d=false;m.classList.remove('is-dragging')}st.onpointerup=up;st.onpointercancel=up;m.ondblclick=function(){rx=-10;ry=-14;draw()};var pal=document.querySelector('.model-palette');pal.onclick=function(e){var q=e.target.closest('button[data-model-color]');if(!q)return;var sw=document.querySelector('#colors [data-id="'+q.dataset.modelColor+'"]');if(sw)sw.click();pal.querySelectorAll('button').forEach(function(z){z.setAttribute('aria-pressed',z===q?'true':'false')})};draw()})();</script></body>
 </html>
+
