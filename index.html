@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>Наклейки на заказ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --text: #2c2c2b;
+  --text-soft: #7d7a75;
+  --canvas: #ffffff;
+  --surface: #f9f8f7;
+  --surface-2: #f0efed;
+  --border: #e6e5e3;
+  --accent: #2783de;
+  --accent-soft: #e5f2fc;
+  --green: #46a171;
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --tg-text: var(--tg-theme-text-color, var(--text));
+  --tg-hint: var(--tg-theme-hint-color, var(--text-soft));
+  --tg-bg: var(--tg-theme-bg-color, var(--canvas));
+  --tg-section: var(--tg-theme-secondary-bg-color, var(--surface));
+  --tg-accent: var(--tg-theme-button-color, var(--accent));
+  --tg-accent-text: var(--tg-theme-button-text-color, #ffffff);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--tg-bg);
+  color: var(--tg-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { padding-bottom: 96px; }
+
+.page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 16px 24px;
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  margin: 12px 0 16px;
+  background: var(--tg-section);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.hero__media {
+  position: relative;
+  aspect-ratio: 16 / 8;
+  background: var(--surface-2);
+}
+
+.hero__media {
+  overflow: hidden;
+  background: linear-gradient(135deg, #2783de 0%, #1b64ad 100%);
+}
+
+.hero__sheet {
+  position: absolute;
+  right: -14%;
+  bottom: -32%;
+  width: 78%;
+  height: 118%;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transform: rotate(-12deg);
+}
+
+.hero__drop {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.hero__drop--1 { width: 54px; height: 54px; left: 8%; top: 18%; }
+.hero__drop--2 { width: 30px; height: 30px; left: 27%; top: 52%; }
+.hero__drop--3 { width: 18px; height: 18px; left: 15%; top: 66%; }
+
+.hero__body { padding: 16px; }
+
+.hero__eyebrow {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tg-accent);
+}
+
+.hero__title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hero__text {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--tg-hint);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--tg-bg);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ---------- Use cases ---------- */
+
+.usecases { margin: 0 -16px 24px; }
+
+.usecases__scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 16px;
+  scrollbar-width: none;
+}
+
+.usecases__scroll::-webkit-scrollbar { display: none; }
+
+/* ---------- Blocks ---------- */
+
+.block { margin-bottom: 28px; }
+
+.block__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.step {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- Option cards ---------- */
+
+.options {
+  display: grid;
+  gap: 8px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--tg-section);
+  color: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s;
+}
+
+.option__main { min-width: 0; }
+
+.option__name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.option__desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--tg-hint);
+}
+
+.option__meta {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-hint);
+  white-space: nowrap;
+}
+
+.option[aria-checked="true"] {
+  border-color: var(--tg-accent);
+  background: var(--accent-soft);
+}
+
+.option[aria-checked="true"] .option__meta { color: var(--tg-accent); }
+
+/* ---------- Chips ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--tg-section);
+  color: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip--static {
+  min-height: 36px;
+  cursor: default;
+  color: var(--tg-hint);
+}
+
+.chip[aria-checked="true"],
+.chip[aria-pressed="true"] {
+  border-color: var(--tg-accent);
+  background: var(--accent-soft);
+  color: var(--tg-accent);
+  font-weight: 600;
+}
+
+/* ---------- Swatches ---------- */
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.swatch {
+  position: relative;
+  aspect-ratio: 1;
+  min-height: 48px;
+  padding: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.swatch__fill {
+  position: absolute;
+  inset: 3px;
+  border-radius: 5px;
+}
+
+.swatch[aria-checked="true"] {
+  border-color: var(--tg-accent);
+  border-width: 2.5px;
+}
+
+/* ---------- Fields ---------- */
+
+.field {
+  display: block;
+  margin-top: 12px;
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px
+;  font-weight: 500;
+  color: var(--tg-hint);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  background: var(--tg-section);
+  color: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus,
+.option:focus-visible,
+.chip:focus-visible,
+.swatch:focus-visible,
+.stepper__btn:focus-visible,
+.pricebar__cta:focus-visible {
+  outline: 2px solid var(--tg-accent);
+  outline-offset: 2px;
+}
+
+.dims {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.field--inline { flex: 1; margin-top: 0; }
+
+.dims__x {
+  padding-bottom: 13px;
+  color: var(--tg-hint);
+  font-size: 18px;
+}
+
+.note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--tg-hint);
+}
+
+.note--accent { color: var(--green); font-weight: 600; }
+.note--error { color: #e56458; font-weight: 600; }
+
+/* ---------- Stepper ---------- */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stepper__btn {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  background: var(--tg-section);
+  color: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 12px;
+  text-align: center;
+  background: var(--tg-section);
+  color: inherit;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* ---------- Summary ---------- */
+
+.summary {
+  padding: 16px;
+  background: var(--tg-section);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.summary__title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.summary__list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.summary__list dt { color: var(--tg-hint); }
+
+.summary__list dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Price bar ---------- */
+
+.pricebar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--tg-bg);
+  border-top: 1px solid var(--border);
+}
+
+.pricebar__info { min-width: 0; }
+
+.pricebar__label {
+  display: block;
+  font-size: 12px;
+  color: var(--tg-hint);
+}
+
+.pricebar__value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pricebar__cta {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 18px;
+  background: var(--tg-accent);
+  color: var(--tg-accent-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pricebar__cta[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* Telegram сам рисует MainButton — свою кнопку тогда скрываем. */
+body.has-mainbutton .pricebar__cta { display: none; }
+body.has-mainbutton .pricebar { justify-content: space-between; }
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 104px;
+  transform: translateX(-50%);
+  z-index: 20;
+  max-width: 320px;
+  padding: 12px 16px;
+  background: #2c2c2b;
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+}
+
+/* ---------- Dark theme ---------- */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #ffffff;
+    --text-soft: rgba(255, 255, 255, .65);
+    --canvas: #191919;
+    --surface: #202020;
+    --surface-2: #383836;
+    --border: rgba(255, 255, 255, .2);
+    --accent: #5e9fe8;
+    --accent-soft: rgba(94, 159, 232, .14);
+    --green: #72bc8f;
+  }
+  .toast { background: #383836; }
+}
+
+@media (max-width: 359px) {
+  .swatches { grid-template-columns: repeat(4, 1fr); }
+  .hero__title { font-size: 21px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header class="hero">
+    <div class="hero__media" aria-hidden="true">
+      <span class="hero__sheet"></span>
+      <span class="hero__drop hero__drop--1"></span>
+      <span class="hero__drop hero__drop--2"></span>
+      <span class="hero__drop hero__drop--3"></span>
+    </div>
+    <div class="hero__body">
+      <p class="hero__eyebrow">Немецкая плёнка Oracal</p>
+      <h1 class="hero__title">Наклейки любого размера на заказ</h1>
+      <p class="hero__text">От стикера на чехол телефона до рекламного логотипа на окне многоэтажки.</p>
+      <ul class="badges">
+        <li class="badge"><span aria-hidden="true">💧</span> Не боится воды</li>
+        <li class="badge"><span aria-hidden="true">☀️</span> До 7 лет на улице</li>
+        <li class="badge"><span aria-hidden="true">📏</span> От 1 см до 5 м</li>
+      </ul>
+    </div>
+  </header>
+
+  <section class="usecases" aria-label="Примеры применения">
+    <div class="usecases__scroll">
+      <span class="chip chip--static">📱 Чехол</span>
+      <span class="chip chip--static">💻 Ноутбук</span>
+      <span class="chip chip--static">🚗 Авто</span>
+      <span class="chip chip--static">🏪 Витрина</span>
+      <span class="chip chip--static">🏢 Фасад</span>
+      <span class="chip chip--static">🪖 Шлем</span>
+      <span class="chip chip--static">📦 Упаковка</span>
+    </div>
+  </section>
+
+  <form class="builder" id="builder" novalidate>
+
+    <section class="block">
+      <h2 class="block__title"><span class="step">1</span> Материал</h2>
+      <div class="options" id="films" role="radiogroup" aria-label="Тип плёнки"></div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title"><span class="step">2</span> Дизайн</h2>
+      <div class="options" id="designs" role="radiogroup" aria-label="Вариант дизайна"></div>
+      <label class="field">
+        <span class="field__label" id="design-hint-label">Комментарий к дизайну</span>
+        <textarea id="comment" rows="2" maxlength="600" placeholder="Например: надпись «Open 24/7», шрифт пожирнее"></textarea>
+      </label>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title"><span class="step">3</span> Цвет</h2>
+      <div class="swatches" id="colors" role="radiogroup" aria-label="Цвет плёнки"></div>
+      <p class="note" id="color-note">Выбрано: Чёрный</p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title"><span class="step">4</span> Размер</h2>
+      <div class="chips" id="sizes" role="radiogroup" aria-label="Готовые размеры"></div>
+      <div class="dims">
+        <label class="field field--inline">
+          <span class="field__label">Ширина, см</span>
+          <input id="width" type="number" inputmode="decimal" min="1" max="500" step="0.5" value="10" />
+        </label>
+        <span class="dims__x" aria-hidden="true">×</span>
+        <label class="field field--inline">
+          <span class="field__label">Высота, см</span>
+          <input id="height" type="number" inputmode="decimal" min="1" max="500" step="0.5" value="10" />
+        </label>
+      </div>
+      <p class="note" id="size-note"></p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title"><span class="step">5</span> Количество</h2>
+      <div class="stepper">
+        <button type="button" class="stepper__btn" id="qty-minus" aria-label="Уменьшить тираж">−</button>
+        <input id="quantity" type="number" inputmode="numeric" min="1" max="10000" value="10" aria-label="Тираж, штук" />
+        <button type="button" class="stepper__btn" id="qty-plus" aria-label="Увеличить тираж">+</button>
+      </div>
+      <div class="chips" id="quantities" role="group" aria-label="Готовые тиражи"></div>
+      <p class="note" id="qty-note"></p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title"><span class="step">6</span> Контакт</h2>
+      <label class="field">
+        <span class="field__label">Телефон, email или @username</span>
+        <input id="contact" type="text" maxlength="120" placeholder="+7 900 000-00-00" />
+      </label>
+      <p class="note">Макет можно будет прислать файлом в чат сразу после заказа.</p>
+    </section>
+
+    <section class="summary" aria-live="polite">
+      <h2 class="summary__title">Состав заказа</h2>
+      <dl class="summary__list" id="summary-list"></dl>
+    </section>
+
+  </form>
+
+  <div class="pricebar">
+    <div class="pricebar__info">
+      <span class="pricebar__label" id="price-label">Итого</span>
+      <strong class="pricebar__value" id="price-value">—</strong>
+    </div>
+    <button type="button" class="pricebar__cta" id="submit">Оформить заказ</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+</main>
+<script>
+/* Mini App «Наклейки на заказ». Без сборщиков и зависимостей. */
+(function () {
+  "use strict";
+
+  var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+  /* ---------- Прайс (зеркало bot/pricing.py) ---------- */
+
+  var FILMS = [
+    { id: "matte", name: "Матовая", desc: "Без бликов, универсальная", rate: 2.2 },
+    { id: "gloss", name: "Глянцевая", desc: "Яркие цвета, легко моется", rate: 2.4 },
+    { id: "transparent", name: "Прозрачная", desc: "Для стекла и витрин", rate: 2.8 },
+    { id: "metallic", name: "Металлик", desc: "Зеркальный эффект", rate: 3.5 },
+    { id: "reflective", name: "Светоотражающая", desc: "Видно в свете фар", rate: 4.2 }
+  ];
+
+  var DESIGNS = [
+    { id: "own", name: "Свой файл", desc: "PNG, SVG, PDF, AI", mult: 1.0, setup: 0,
+      hint: "Пришлёте файл в чат после заказа" },
+    { id: "text", name: "Надпись", desc: "Слово или фраза", mult: 1.1, setup: 0,
+      hint: "Напишите текст и желаемый шрифт" },
+    { id: "logo", name: "Макет под ключ", desc: "Рисуем дизайн с нуля", mult: 1.25, setup: 1500,
+      hint: "Опишите идею: что изобразить и в каком стиле" },
+    { id: "catalog", name: "Из каталога", desc: "Готовые шаблоны", mult: 1.0, setup: 0,
+      hint: "Напишите тему: космос, авто, аниме и т. д." }
+  ];
+
+  var COLORS = [
+    { id: "black", name: "Чёрный", css: "#2c2c2b" },
+    { id: "white", name: "Белый", css: "#ffffff" },
+    { id: "red", name: "Красный", css: "#e5352b" },
+    { id: "blue", name: "Синий", css: "#1b5fc1" },
+    { id: "green", name: "Зелёный", css: "#2f8f4f" },
+    { id: "yellow", name: "Жёлтый", css: "#f2c31b" },
+    { id: "orange", name: "Оранжевый", css: "#ef7a1a" },
+    { id: "silver", name: "Серебро", css: "linear-gradient(135deg,#e8e8e8,#a8a8a8 55%,#f2f2f2)" },
+    { id: "gold", name: "Золото", css: "linear-gradient(135deg,#f5d47a,#c9922c 55%,#f7e3a1)" },
+    { id: "fullcolor", name: "Полноцветная печать",
+      css: "conic-gradient(from 210deg,#e5352b,#f2c31b,#2f8f4f,#1b5fc1,#8e44ad,#e5352b)" }
+  ];
+
+  var COLOR_MULT = { fullcolor: 1.3, gold: 1.15, silver: 1.15 };
+
+  var SIZES = [
+    { label: "5 × 5 см", w: 5, h: 5 },
+    { label: "10 × 10 см", w: 10, h: 10 },
+    { label: "20 × 20 см", w: 20, h: 20 },
+    { label: "30 × 15 см", w: 30, h: 15 },
+    { label: "1 × 1 м", w: 100, h: 100 },
+    { label: "3 × 2 м", w: 300, h: 200 }
+  ];
+
+  var QUANTITIES = [1, 5, 10, 25, 50, 100];
+  var TIERS = [[100, 0.6], [50, 0.68], [25, 0.75], [10, 0.82], [5, 0.9], [1, 1]];
+  var MIN_ITEM_PRICE = 300;
+
+  function byId(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return list[0];
+  }
+
+  function quantityMultiplier(qty) {
+    for (var i = 0; i < TIERS.length; i++) if (qty >= TIERS[i][0]) return TIERS[i][1];
+    return 1;
+  }
+
+  function calculate(s) {
+    var film = byId(FILMS, s.film);
+    var design = byId(DESIGNS, s.design);
+    var area = s.width * s.height;
+    var colorMult = COLOR_MULT[s.color] || 1;
+    var rawUnit = area * film.rate * design.mult * colorMult;
+    var unit = Math.max(MIN_ITEM_PRICE, Math.round(rawUnit / 10) * 10);
+    var discount = quantityMultiplier(s.quantity);
+    var total = Math.round(unit * s.quantity * discount / 10) * 10 + design.setup;
+    return {
+      unit: unit,
+      setup: design.setup,
+      discountPercent: Math.round((1 - discount) * 100),
+      total: total
+    };
+  }
+
+  function money(value) {
+    return value.toLocaleString("ru-RU").replace(/\u00a0/g, " ") + " \u20bd";
+  }
+
+  /* ---------- Состояние ---------- */
+
+  var state = {
+    film: "matte",
+    design: "own",
+    color: "black",
+    width: 10,
+    height: 10,
+    quantity: 10,
+    comment: "",
+    contact: ""
+  };
+
+  var el = {
+    films: document.getElementById("films"),
+    designs: document.getElementById("designs"),
+    colors: document.getElementById("colors"),
+    sizes: document.getElementById("sizes"),
+    quantities: document.getElementById("quantities"),
+    width: document.getElementById("width"),
+    height: document.getElementById("height"),
+    quantity: document.getElementById("quantity"),
+    comment: document.getElementById("comment"),
+    contact: document.getElementById("contact"),
+    colorNote: document.getElementById("color-note"),
+    sizeNote: document.getElementById("size-note"),
+    qtyNote: document.getElementById("qty-note"),
+    designHint: document.getElementById("design-hint-label"),
+    summary: document.getElementById("summary-list"),
+    priceValue: document.getElementById("price-value"),
+    priceLabel: document.getElementById("price-label"),
+    submit: document.getElementById("submit"),
+    toast: document.getElementById("toast")
+  };
+
+  /* ---------- Рендер управления ---------- */
+
+  function buildOptions(container, list, key) {
+    list.forEach(function (item) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "option";
+      button.setAttribute("role", "radio");
+      button.dataset.id = item.id;
+
+      var main = document.createElement("span");
+      main.className = "option__main";
+      var name = document.createElement("span");
+      name.className = "option__name";
+      name.textContent = item.name;
+      var desc = document.createElement("span");
+      desc.className = "option__desc";
+      desc.textContent = item.desc;
+      main.appendChild(name);
+      main.appendChild(desc);
+
+      var meta = document.createElement("span");
+      meta.className = "option__meta";
+      meta.textContent = key === "film"
+        ? item.rate.toFixed(1) + " \u20bd/\u0441\u043c\u00b2"
+        : (item.setup ? "+" + money(item.setup) : "\u0431\u0435\u0437 \u0434\u043e\u043f\u043b\u0430\u0442\u044b");
+      button.appendChild(main);
+      button.appendChild(meta);
+
+      button.addEventListener("click", function () {
+        state[key] = item.id;
+        haptic();
+        render();
+      });
+      container.appendChild(button);
+    });
+  }
+
+  function buildColors() {
+    COLORS.forEach(function (color) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "swatch";
+      button.setAttribute("role", "radio");
+      button.setAttribute("aria-label", color.name);
+      button.title = color.name;
+      button.dataset.id = color.id;
+
+      var fill = document.createElement("span");
+      fill.className = "swatch__fill";
+      fill.style.background = color.css;
+      if (color.id === "white") fill.style.boxShadow = "inset 0 0 0 1px rgba(0,0,0,.12)";
+      button.appendChild(fill);
+
+      button.addEventListener("click", function () {
+        state.color = color.id;
+        haptic();
+        render();
+      });
+      el.colors.appendChild(button);
+    });
+  }
+
+  function buildSizes() {
+    SIZES.forEach(function (size) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.setAttribute("role", "radio");
+      button.textContent = size.label;
+      button.dataset.w = size.w;
+      button.dataset.h = size.h;
+      button.addEventListener("click", function () {
+        state.width = size.w;
+        state.height = size.h;
+        el.width.value = size.w;
+        el.height.value = size.h;
+        haptic();
+        render();
+      });
+      el.sizes.appendChild(button);
+    });
+  }
+
+  function buildQuantities() {
+    QUANTITIES.forEach(function (qty) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.textContent = qty + " \u0448\u0442";
+      button.dataset.qty = qty;
+      button.addEventListener("click", function () {
+        state.quantity = qty;
+        el.quantity.value = qty;
+        haptic();
+        render();
+      });
+      el.quantities.appendChild(button);
+    });
+  }
+
+  /* ---------- Валидация ---------- */
+
+  function clampNumber(value, min, max, fallback) {
+    var parsed = parseFloat(String(value).replace(",", "."));
+    if (!isFinite(parsed)) return fallback;
+    return Math.min(max, Math.max(min, parsed));
+  }
+
+  function validate() {
+    if (!(state.width >= 1 && state.width <= 500)) return "Ширина: от 1 до 500 см";
+    if (!(state.height >= 1 && state.height <= 500)) return "Высота: от 1 до 500 см";
+    if (!(state.quantity >= 1 && state.quantity <= 10000)) return "Тираж: от 1 до 10 000 шт";
+    if (state.contact.trim().length < 4) return "Укажите контакт для связи";
+    return null;
+  }
+
+  /* ---------- Рендер ---------- */
+
+  function markSelected(container, selector, matcher) {
+    var nodes = container.querySelectorAll(selector);
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].setAttribute("aria-checked", matcher(nodes[i]) ? "true" : "false");
+    }
+  }
+
+  function addRow(dl, term, value) {
+    var dt = document.createElement("dt");
+    dt.textContent = term;
+    var dd = document.createElement("dd");
+    dd.textContent = value;
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  }
+
+  function render() {
+    markSelected(el.films, ".option", function (n) { return n.dataset.id === state.film; });
+    markSelected(el.designs, ".option", function (n) { return n.dataset.id === state.design; });
+    markSelected(el.colors, ".swatch", function (n) { return n.dataset.id === state.color; });
+    markSelected(el.sizes, ".chip", function (n) {
+      return parseFloat(n.dataset.w) === state.width && parseFloat(n.dataset.h) === state.height;
+    });
+
+    var qtyChips = el.quantities.querySelectorAll(".chip");
+    for (var i = 0; i < qtyChips.length; i++) {
+      qtyChips[i].setAttribute("aria-pressed",
+        parseInt(qtyChips[i].dataset.qty, 10) === state.quantity ? "true" : "false");
+    }
+
+    var color = byId(COLORS, state.color);
+    var extra = COLOR_MULT[state.color];
+    el.colorNote.textContent = "Выбрано: " + color.name +
+      (extra ? " \u00b7 +" + Math.round((extra - 1) * 100) + "% \u043a \u0446\u0435\u043d\u0435" : "");
+
+    var design = byId(DESIGNS, state.design);
+    el.designHint.textContent = design.hint;
+
+    var area = state.width * state.height;
+    el.sizeNote.textContent = "Площадь одной наклейки: " +
+      area.toLocaleString("ru-RU") + " \u0441\u043c\u00b2";
+
+    var price = calculate(state);
+
+    if (price.discountPercent > 0) {
+      el.qtyNote.textContent = "Скидка за тираж: \u2212" + price.discountPercent + "%";
+      el.qtyNote.className = "note note--accent";
+    } else {
+      el.qtyNote.textContent = "От 5 шт — скидка 10%, от 100 шт — 40%";
+      el.qtyNote.className = "note";
+    }
+
+    el.summary.innerHTML = "";
+    addRow(el.summary, "Материал", byId(FILMS, state.film).name);
+    addRow(el.summary, "Дизайн", design.name);
+    addRow(el.summary, "Цвет", color.name);
+    addRow(el.summary, "Размер", state.width + " \u00d7 " + state.height + " \u0441\u043c");
+    addRow(el.summary, "Тираж", state.quantity + " \u0448\u0442");
+    addRow(el.summary, "Цена за шт", money(price.unit));
+    if (price.discountPercent > 0) {
+      addRow(el.summary, "Скидка", "\u2212" + price.discountPercent + "%");
+    }
+    if (price.setup > 0) addRow(el.summary, "Разработка макета", money(price.setup));
+    addRow(el.summary, "Итого", money(price.total));
+
+    el.priceValue.textContent = money(price.total);
+    el.priceLabel.textContent = state.quantity + " \u0448\u0442 \u00b7 \u0438\u0442\u043e\u0433\u043e";
+
+    var error = validate();
+    el.submit.disabled = Boolean(error);
+
+    if (tg && tg.MainButton) {
+      tg.MainButton.setText(error ? error : "Оформить за " + money(price.total));
+      if (error) tg.MainButton.disable(); else tg.MainButton.enable();
+      tg.MainButton.show();
+    }
+  }
+
+  /* ---------- События ---------- */
+
+  el.width.addEventListener("input", function () {
+    state.width = clampNumber(el.width.value, 1, 500, state.width);
+    render();
+  });
+  el.height.addEventListener("input", function () {
+    state.height = clampNumber(el.height.value, 1, 500, state.height);
+    render();
+  });
+  el.quantity.addEventListener("input", function () {
+    state.quantity = Math.round(clampNumber(el.quantity.value, 1, 10000, state.quantity));
+    render();
+  });
+  el.comment.addEventListener("input", function () { state.comment = el.comment.value; });
+  el.contact.addEventListener("input", function () {
+    state.contact = el.contact.value;
+    render();
+  });
+
+  document.getElementById("qty-minus").addEventListener("click", function () {
+    state.quantity = Math.max(1, state.quantity - 1);
+    el.quantity.value = state.quantity;
+    haptic();
+    render();
+  });
+  document.getElementById("qty-plus").addEventListener("click", function () {
+    state.quantity = Math.min(10000, state.quantity + 1);
+    el.quantity.value = state.quantity;
+    haptic();
+    render();
+  });
+
+  el.submit.addEventListener("click", submit);
+
+  function haptic() {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  }
+
+  function toast(message) {
+    el.toast.textContent = message;
+    el.toast.hidden = false;
+    window.clearTimeout(toast._timer);
+    toast._timer = window.setTimeout(function () { el.toast.hidden = true; }, 3200);
+  }
+
+  function submit() {
+    var error = validate();
+    if (error) {
+      toast(error);
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error");
+      return;
+    }
+
+    var price = calculate(state);
+    var payload = {
+      v: 1,
+      film: state.film,
+      design: state.design,
+      color: state.color,
+      w: state.width,
+      h: state.height,
+      qty: state.quantity,
+      comment: state.comment.slice(0, 600),
+      contact: state.contact.slice(0, 120),
+      client_total: price.total
+    };
+
+    if (tg && typeof tg.sendData === "function") {
+      tg.sendData(JSON.stringify(payload));
+      return;
+    }
+
+    // Запасной путь: открыто в обычном браузере или через кнопку меню.
+    fetch("api/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.assign({ init_data: tg ? tg.initData : "" }, payload))
+    })
+      .then(function (response) { return response.json().catch(function () { return {}; }); })
+      .then(function (data) {
+        if (data && data.ok) {
+          toast("Заявка \u2116" + data.order_id + " принята");
+        } else {
+          toast((data && data.error) || "Не удалось отправить заказ");
+        }
+      })
+      .catch(function () {
+        toast("Нет связи с сервером. Откройте мини-приложение из бота.");
+      });
+  }
+
+  /* ---------- Старт ---------- */
+
+  buildOptions(el.films, FILMS, "film");
+  buildOptions(el.designs, DESIGNS, "design");
+  buildColors();
+  buildSizes();
+  buildQuantities();
+
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    if (tg.MainButton) {
+      document.body.classList.add("has-mainbutton");
+      tg.MainButton.onClick(submit);
+    }
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username) {
+      state.contact = "@" + tg.initDataUnsafe.user.username;
+      el.contact.value = state.contact;
+    }
+  }
+
+  render();
+})();
+
+</script>
+</body>
+</html>
