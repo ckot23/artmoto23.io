@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node server.js --selftest",
+    "test": "node server.js --selftest && node tests/e2e.js",
+    "test:e2e": "node tests/e2e.js",
     "poll": "node server.js --poll",
     "send-test": "node server.js --send-test"
   },

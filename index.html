@@ -2880,7 +2880,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     if (viaBot) {
       el.orderSuccessId.hidden = true;
       setText(el.orderSuccessText, "Заявка ушла боту в Telegram. Менеджер ответит вам в " +
-        contactKind(state.contact) + ".");
+        contactKind(state.contact) + ". Если ответа не будет — напишите @ckot_23.");
     } else {
       el.orderSuccessId.hidden = false;
       setText(el.orderSuccessId, "Заказ №" + result.order_id);
@@ -2899,9 +2899,14 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }
 
-  /* Заявка через бота внутри Mini App — если HTTP-сервер недоступен. */
+  /* Заявка через бота внутри Mini App — если HTTP-сервер недоступен.
+
+     Важно: снаружи Telegram скрипт telegram-web-app.js тоже создаёт объект
+     WebApp, а sendData() там просто уходит в никуда и не бросает ошибку
+     (см. insideTelegram()). Если вызвать его в обычном браузере, посетитель
+     увидит «заявка отправлена», а заявка пропадёт — поэтому проверяем окно. */
   function sendViaMiniApp(payload) {
-    if (!tg || typeof tg.sendData !== "function") return false;
+    if (!insideTelegram() || !tg || typeof tg.sendData !== "function") return false;
     try {
       tg.sendData(JSON.stringify(payload));
       orderSent({ mini_app: true });
@@ -2957,14 +2962,37 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
       )),
       signal: controller ? controller.signal : undefined
     })
-      .then(function (response) { return response.json().catch(function () { return {}; }); })
-      .then(function (data) {
+      .then(function (response) {
+        /* Читаем телом, а не response.json(): статический хостинг (GitHub Pages)
+           отвечает на /api/order HTML-страницей 404, и это не должно выглядеть
+           как «заявка ушла». */
+        return response.text().then(function (bodyText) {
+          var data = null;
+          try { data = JSON.parse(bodyText); } catch (e) { data = null; }
+          return { status: response.status, data: data };
+        });
+      })
+      .then(function (reply) {
         window.clearTimeout(timer);
         submitting = false;
         paintSubmit();
-        if (data && data.ok) { orderSent(data); return; }
+        if (reply.data && reply.data.ok) { orderSent(reply.data); return; }
+
+        /* Сервер ответил и объяснил причину (недействительный токен бота,
+           модератор не получает сообщения и т. п.) — заявка до сервера дошла,
+           но менеджеру не ушла. Говорим об этом честно, а не «всё отправлено». */
+        if (reply.data && reply.data.error) {
+          if (sendViaMiniApp(payload)) return;
+          showOrderError(reply.data.error, "network");
+          hapticNotify("error");
+          return;
+        }
+
+        /* Ответ не от нашего сервера: сайт открыт на статическом хостинге,
+           а api-base не указан. Запасной путь — только внутри Telegram. */
         if (sendViaMiniApp(payload)) return;
-        showOrderError((data && data.error) || "Не удалось отправить заказ. Напишите нам: @ckot_23", "network");
+        showOrderError("Сервер заявок не отвечает (HTTP " + reply.status +
+          "). Напишите в Telegram @ckot_23 — оформим заказ вручную.", "network");
         hapticNotify("error");
       })
       .catch(function () {
