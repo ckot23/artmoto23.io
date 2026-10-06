@@ -283,9 +283,29 @@ function main() {
       assert.ok(html.indexOf("showTelegramFallback(payload") !== -1, "запасной путь не вызывается");
       assert.ok(html.indexOf("function orderPlainText(payload)") !== -1, "нет текста заявки для ручной отправки");
     });
-    check("в .env.example нет настоящего токена бота", function () {
-      var example = fs.readFileSync(path.join(ROOT, ".env.example"), "utf8");
-      assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(example), "похоже на живой токен — его нужно отозвать");
+    check("нигде в исходниках нет токена бота", function () {
+      /* Токен в коде = токен опубликован: сайт и репозиторий видны всем,
+         а Telegram отзывает засветившиеся токены. Живой токен должен лежать
+         только в .env (локально) или в GitHub Secrets (для Actions). */
+      var files = ["index.html", "server.js", "bot.js", "env.js", "pricing.js", "orderlink.js",
+        ".env.example", "render.yaml", "Dockerfile", "package.json"];
+      var found = [];
+      files.forEach(function (name) {
+        var text;
+        try { text = fs.readFileSync(path.join(ROOT, name), "utf8"); } catch (e) { return; }
+        if (/\d{8,}:[A-Za-z0-9_-]{30,}/.test(text)) found.push(name);
+      });
+      assert.strictEqual(found.length, 0, "токен найден в: " + found.join(", ") + " — его нужно отозвать");
+    });
+    check("в workflow токен берётся из секретов, а не из файла", function () {
+      var workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/bot.yml"), "utf8");
+      assert.ok(workflow.indexOf("secrets.BOT_TOKEN") !== -1, "токен не из секретов");
+      assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(workflow), "токен вписан в workflow");
+    });
+    check(".env и orders.jsonl исключены из git", function () {
+      var ignore = fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8");
+      assert.ok(/^\.env$/m.test(ignore), ".env не в .gitignore");
+      assert.ok(/orders\.jsonl/.test(ignore), "orders.jsonl не в .gitignore");
     });
   });
 
