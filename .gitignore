@@ -1,0 +1,11 @@
+# Секреты и локальные данные — в репозиторий не попадают
+.env
+.env.local
+orders.jsonl
+*.log
+
+# Служебное
+node_modules/
+.DS_Store
+Thumbs.db
+*.swp

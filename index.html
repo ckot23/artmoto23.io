@@ -7,6 +7,10 @@
 <meta name="color-scheme" content="dark light"/>
 <meta name="theme-color" content="#0E1012"/>
 <meta name="description" content="Наклейки любого размера на немецкой плёнке ORACAL — от 1 см до 5 м. Онлайн-расчёт цены, макет и заказ за 30 секунд."/>
+<!-- Адрес API приёма заказов. Пусто — тот же домен, что и сайт (api/order).
+     Если сайт лежит на GitHub Pages, а сервер заказов на другом домене,
+     укажите здесь полный адрес: <meta name="api-base" content="https://api.example.com"> -->
+<meta name="api-base" content=""/>
 <title>Наклейки на заказ — ORACAL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF6B2C'/%3E%3Cpath d='M20 34c0-8 6-14 14-14h10v10c0 8-6 14-14 14H20z' fill='%230E1012'/%3E%3C/svg%3E"/>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1089,6 +1093,138 @@ body.has-mainbutton .pricebar__cta { display: none; }
 body.has-mainbutton .pricebar__value { font-size: 24px; }
 
 /* ============================================================================
+   9.1 ВКЛАДКИ «КОНСТРУКТОР / ОСТАВИТЬ ЗАКАЗ»
+   ========================================================================= */
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  display: flex;
+  gap: 6px;
+  margin: 0 0 20px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--sh-1);
+}
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .tabs { background: var(--bg-2); }
+}
+
+.tabs__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: calc(var(--radius) - 5px);
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color .16s, color .16s;
+}
+.tabs__btn:hover { background: var(--surface-2); color: var(--text); }
+.tabs__btn[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow: var(--sh-accent);
+}
+.tabs__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tabs__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--ok);
+  border-radius: 999px;
+  color: #05170F;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+.tabs__btn[aria-selected="true"] .tabs__badge { background: var(--accent-ink); color: var(--accent); }
+
+/* ============================================================================
+   9.2 ОФОРМЛЕНИЕ ЗАКАЗА
+   ========================================================================= */
+
+.order {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  gap: 20px;
+  align-items: start;
+}
+.order__main { min-width: 0; }
+
+.order__card {
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-1);
+}
+.order__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.order__title { margin: 2px 0 0; font-size: 20px; font-weight: 700; letter-spacing: -.024em; }
+.order__lead { margin: 10px 0 0; color: var(--text-2); font-size: 14px; line-height: 1.55; }
+
+.order__side { position: sticky; top: 78px; display: grid; gap: 12px; min-width: 0; }
+.order__side .summary { margin-top: 0; }
+
+.order__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+.order__total b {
+  color: var(--accent);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.order__actions { display: grid; gap: 10px; margin-top: 18px; }
+.order__actions .btn { width: 100%; }
+
+/* Экран «заявка отправлена» */
+.order__success { text-align: center; }
+.order__success-icon { font-size: 42px; line-height: 1; }
+.order__success .order__title { margin-top: 10px; }
+.order__id {
+  display: inline-block;
+  margin: 14px 0 2px;
+  padding: 7px 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: .02em;
+}
+.order__success .btn { margin-top: 16px; }
+.order__steps { margin: 14px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.6; text-align: left; }
+.order__steps li { display: flex; gap: 8px; margin-top: 6px; }
+.order__steps b { color: var(--accent); }
+
+/* ============================================================================
    10. TOAST
    ========================================================================= */
 
@@ -1124,6 +1260,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   .workspace { grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; }
   .swatches { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .hero { padding: 32px; gap: 28px; }
+  .order { grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; }
 }
 
 @media (max-width: 860px) {
@@ -1152,6 +1289,10 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   .options { grid-template-columns: 1fr; }
   .builder__toolbar h2 { font-size: 21px; }
   .pricebar { max-width: none; padding-left: 16px; padding-right: 16px; }
+
+  .order { grid-template-columns: 1fr; gap: 14px; }
+  .order__side { position: static; }
+  .order__card { padding: 18px; }
 }
 
 @media (max-width: 480px) {
@@ -1268,6 +1409,17 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   </section>
 
   <!-- ======================= КАЛЬКУЛЯТОР ======================= -->
+  <!-- ======================= ВКЛАДКИ ======================= -->
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Разделы страницы">
+    <button class="tabs__btn" id="tab-builder" type="button" role="tab" data-tab="builder"
+            aria-selected="true" aria-controls="panel-builder">Конструктор</button>
+    <button class="tabs__btn" id="tab-order" type="button" role="tab" data-tab="order"
+            aria-selected="false" aria-controls="panel-order" tabindex="-1">
+      Оставить заказ<span class="tabs__badge" id="tab-order-badge" hidden>✓</span>
+    </button>
+  </nav>
+
+  <section class="tabpanel" id="panel-builder" role="tabpanel" aria-labelledby="tab-builder">
   <div class="workspace">
 
     <form class="builder" id="builder" novalidate>
@@ -1349,12 +1501,12 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
         </section>
 
         <section class="block" id="block-contact">
-          <h3 class="block__title"><span class="step">6</span>Telegram для связи<span class="block__value" id="value-contact"></span></h3>
+          <h3 class="block__title"><span class="step">6</span>Контакт для связи<span class="block__value" id="value-contact"></span></h3>
           <label class="field" for="contact">
-            <span class="field__label">Ваш username в Telegram</span>
-            <input class="input" id="contact" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="33" placeholder="@username" aria-describedby="contact-hint"/>
+            <span class="field__label">Telegram, телефон или e-mail</span>
+            <input class="input" id="contact" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" placeholder="@username" aria-describedby="contact-hint"/>
           </label>
-          <p class="note" id="contact-hint">Нужен только Telegram username — менеджер напишет вам по заказу. Макет можно прислать файлом в чат сразу после заказа.</p>
+          <p class="note" id="contact-hint">Менеджер напишет вам по заказу. Макет можно прислать файлом в Telegram сразу после заказа.</p>
           <p class="note note--error" id="contact-error" hidden></p>
         </section>
 
@@ -1408,6 +1560,83 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     </aside>
 
   </div>
+  </section>
+
+  <!-- ======================= ОСТАВИТЬ ЗАКАЗ ======================= -->
+  <section class="tabpanel" id="panel-order" role="tabpanel" aria-labelledby="tab-order" hidden>
+    <div class="order">
+
+      <div class="order__main">
+        <form class="order__card" id="order-form" novalidate>
+          <div class="order__head">
+            <div>
+              <p class="builder__eyebrow">Последний шаг</p>
+              <h2 class="order__title">Оставить заказ</h2>
+            </div>
+          </div>
+          <p class="order__lead">Заполните контакты и нажмите «Отправить заказ» — заявка уйдёт менеджеру в Telegram, он подтвердит расчёт и попросит макет.</p>
+
+          <label class="field" for="customer-name">
+            <span class="field__label">Как вас зовут</span>
+            <input class="input" id="customer-name" type="text" autocomplete="name" maxlength="80"
+                   placeholder="Иван" enterkeyhint="next"/>
+          </label>
+
+          <label class="field" for="customer-contact">
+            <span class="field__label">Контакт для связи</span>
+            <input class="input" id="customer-contact" type="text" autocomplete="off" autocapitalize="off"
+                   spellcheck="false" maxlength="64" placeholder="@username" aria-describedby="customer-hint"/>
+          </label>
+          <p class="note" id="customer-hint">Telegram username, телефон или e-mail — как удобнее. Менеджер ответит сюда.</p>
+
+          <label class="field" for="customer-delivery">
+            <span class="field__label">Город и способ получения</span>
+            <input class="input" id="customer-delivery" type="text" autocomplete="address-level2" maxlength="160"
+                   placeholder="Москва, СДЭК или самовывоз"/>
+          </label>
+
+          <label class="field" for="order-comment">
+            <span class="field__label">Комментарий к заказу</span>
+            <textarea class="input" id="order-comment" maxlength="600" rows="3"
+                      placeholder="Например: нужно к 20 октября, надпись «Open 24/7», шрифт пожирнее"></textarea>
+          </label>
+
+          <p class="note note--error" id="order-error" hidden></p>
+
+          <div class="order__actions">
+            <button class="btn btn--primary btn--wide" id="order-send" type="button">Отправить заказ</button>
+            <button class="btn btn--ghost btn--wide" id="order-edit" type="button">Вернуться к конструктору</button>
+          </div>
+
+          <p class="note">Макет можно прислать файлом в Telegram <a href="https://t.me/ckot_23" target="_blank" rel="noopener">@ckot_23</a> сразу после отправки — менеджер привяжет его к заказу.</p>
+        </form>
+
+        <section class="order__card order__success" id="order-success" hidden aria-live="polite">
+          <p class="order__success-icon" aria-hidden="true">✅</p>
+          <h2 class="order__title">Заявка отправлена</h2>
+          <span class="order__id" id="order-success-id"></span>
+          <p class="note" id="order-success-text"></p>
+          <ul class="order__steps">
+            <li><b>1</b><span>Менеджер проверит расчёт и напишет вам в Telegram.</span></li>
+            <li><b>2</b><span>Пришлите макет файлом: PNG, SVG, PDF или AI.</span></li>
+            <li><b>3</b><span>Согласуем макет — и запускаем в печать.</span></li>
+          </ul>
+          <a class="btn btn--primary btn--wide" href="https://t.me/ckot_23" target="_blank" rel="noopener">Написать в Telegram</a>
+          <button class="btn btn--secondary btn--wide" id="order-again" type="button">Оформить ещё один заказ</button>
+        </section>
+      </div>
+
+      <aside class="order__side">
+        <section class="summary" aria-label="Состав заказа">
+          <h3 class="summary__title">Ваш заказ</h3>
+          <dl class="summary__list" id="order-summary"></dl>
+          <div class="order__total"><span>Итого</span><b id="order-total">—</b></div>
+        </section>
+        <button class="btn btn--secondary btn--wide" id="order-edit-2" type="button">Изменить конфигурацию</button>
+      </aside>
+
+    </div>
+  </section>
 </main>
 
 <!-- ======================= ЦЕНА ======================= -->
@@ -1500,6 +1729,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
   /* border-radius принимает без единиц только 0, поэтому единицы заданы явно. */
   var RADIUS = { rectangle: "6px", rounded: "22px", circle: "50%" };
+  var SHAPE_NAMES = { rectangle: "Прямоугольник", rounded: "Скруглённая", circle: "Круглая" };
 
   /* ==========================================================================
      STORE — единственный источник истины
@@ -1510,20 +1740,25 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
   var DEFAULTS = {
     film: "matte", design: "own", color: "black", shape: "rectangle",
-    width: 10, height: 10, quantity: 10, comment: "", contact: ""
+    width: 10, height: 10, quantity: 10,
+    comment: "", contact: "", name: "", delivery: ""
   };
 
-  /* Что перерисовывать при изменении каждого поля. */
+  /* Что перерисовывать при изменении каждого поля.
+     Группа "order" — панель «Оставить заказ», "form" — синхронизация
+     одинаковых полей (один и тот же контакт есть в конструкторе и в заказе). */
   var DEPS = {
-    film:    ["films", "filmValue", "summary", "price", "preview", "progress"],
-    design:  ["designs", "designValue", "summary", "price", "preview", "progress"],
-    color:   ["colors", "colorValue", "summary", "price", "preview", "progress"],
-    width:   ["dims", "sizeValue", "summary", "price", "preview", "progress"],
-    height:  ["dims", "sizeValue", "summary", "price", "preview", "progress"],
-    shape:   ["shape", "preview"],
-    quantity:["qty", "qtyValue", "summary", "price", "progress"],
-    comment: ["preview", "progress"],
-    contact: ["contactValue", "progress", "contactError"]
+    film:    ["films", "filmValue", "summary", "order", "price", "preview", "progress"],
+    design:  ["designs", "designValue", "summary", "order", "price", "preview", "progress"],
+    color:   ["colors", "colorValue", "summary", "order", "price", "preview", "progress"],
+    width:   ["dims", "sizes", "sizeValue", "summary", "order", "price", "preview", "progress"],
+    height:  ["dims", "sizes", "sizeValue", "summary", "order", "price", "preview", "progress"],
+    shape:   ["shape", "order", "preview"],
+    quantity:["qty", "qtyValue", "summary", "order", "price", "progress"],
+    comment: ["preview", "progress", "order", "form"],
+    contact: ["contactValue", "progress", "contactError", "order", "form"],
+    name:    ["form", "order", "progress"],
+    delivery:["form", "order"]
   };
 
   var state = Object.assign({}, DEFAULTS, readState());
@@ -1544,7 +1779,9 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
       if (isFinite(saved.height)) out.height = clampNum(saved.height, DIM_MIN, DIM_MAX, DEFAULTS.height);
       if (isFinite(saved.quantity)) out.quantity = Math.round(clampNum(saved.quantity, QTY_MIN, QTY_MAX, DEFAULTS.quantity));
       if (typeof saved.comment === "string") out.comment = saved.comment.slice(0, 600);
-      if (typeof saved.contact === "string") out.contact = saved.contact.slice(0, 33);
+      if (typeof saved.contact === "string") out.contact = saved.contact.slice(0, 64);
+      if (typeof saved.name === "string") out.name = saved.name.slice(0, 80);
+      if (typeof saved.delivery === "string") out.delivery = saved.delivery.slice(0, 160);
       return out;
     } catch (e) { return {}; }
   }
@@ -1611,20 +1848,41 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     return Math.round(Math.exp(Math.max(0, pos) / RANGE_STEPS * RANGE_LOG_MAX));
   }
 
-  function normalizeContact(value) {
+  /* Контакт принимаем в трёх видах: @username, телефон, e-mail. */
+  var CONTACT_RE = /^(?:@?[A-Za-z0-9_]{5,32}|\+?[\d\s().-]{10,20}|\S+@\S+\.\S{2,})$/;
+
+  function contactKind(value) {
     var v = String(value || "").trim();
-    if (v.charAt(0) === "@") v = v.slice(1);
-    return "@" + v;
-  }
-  function contactValid() {
-    return /^@?[A-Za-z0-9_]{5,32}$/.test(state.contact.trim());
+    if (/^\S+@\S+\.\S{2,}$/.test(v)) return "e-mail";
+    if (/^\+?[\d\s().-]{10,}$/.test(v)) return "телефон";
+    return "Telegram";
   }
 
-  function validate() {
+  function normalizeContact(value) {
+    var v = String(value || "").trim().replace(/\s+/g, " ");
+    if (v.charAt(0) === "@") return v;
+    if (contactKind(v) !== "Telegram") return v;   /* телефон и e-mail оставляем как есть */
+    return "@" + v;
+  }
+
+  function contactValid() {
+    return CONTACT_RE.test(state.contact.trim());
+  }
+
+  /* Конфигурация: размер и тираж. */
+  function validateConfig() {
     if (!(state.width >= DIM_MIN && state.width <= DIM_MAX)) return "Ширина: от 1 до 500 см";
     if (!(state.height >= DIM_MIN && state.height <= DIM_MAX)) return "Высота: от 1 до 500 см";
     if (!(state.quantity >= QTY_MIN && state.quantity <= QTY_MAX)) return "Тираж: от 1 до 10 000 шт";
-    if (!contactValid()) return "Укажите Telegram username, например @username";
+    return null;
+  }
+
+  /* Всё, что нужно для заявки: конфигурация + контакты. */
+  function validateOrder() {
+    var configError = validateConfig();
+    if (configError) return configError;
+    if (state.name.trim().length < 2) return "Укажите имя — как к вам обращаться";
+    if (!contactValid()) return "Укажите контакт: @username, телефон или e-mail";
     return null;
   }
 
@@ -1652,7 +1910,17 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     valueFilm: $("value-film"), valueDesign: $("value-design"), valueColor: $("value-color"),
     valueSize: $("value-size"), valueQty: $("value-qty"), valueContact: $("value-contact"),
     blockFilm: $("block-film"), blockDesign: $("block-design"), blockColor: $("block-color"),
-    blockSize: $("block-size"), blockQty: $("block-qty"), blockContact: $("block-contact")
+    blockSize: $("block-size"), blockQty: $("block-qty"), blockContact: $("block-contact"),
+    /* вкладки и оформление заказа */
+    tabs: $("tabs"), tabBuilder: $("tab-builder"), tabOrder: $("tab-order"),
+    tabOrderBadge: $("tab-order-badge"),
+    panelBuilder: $("panel-builder"), panelOrder: $("panel-order"),
+    orderForm: $("order-form"), orderSend: $("order-send"), orderError: $("order-error"),
+    orderSummary: $("order-summary"), orderTotal: $("order-total"),
+    orderSuccess: $("order-success"), orderSuccessId: $("order-success-id"),
+    orderSuccessText: $("order-success-text"),
+    name: $("customer-name"), delivery: $("customer-delivery"),
+    orderContact: $("customer-contact"), orderComment: $("order-comment")
   };
 
   /* ==========================================================================
@@ -1703,6 +1971,8 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     qty: paintQty,
     preview: paintPreview,
     summary: paintSummary,
+    order: paintOrder,
+    form: paintForm,
     price: paintPrice,
     progress: paintProgress,
     filmValue: function () { setText(el.valueFilm, byId(FILMS, state.film).name); },
@@ -1847,22 +2117,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   }
 
   function paintSummary() {
-    var price = calculate();
-    var film = byId(FILMS, state.film);
-    var design = byId(DESIGNS, state.design);
-    var color = byId(COLORS, state.color);
-
-    var rows = [
-      ["Материал", film.name],
-      ["Дизайн", design.name],
-      ["Цвет", color.name],
-      ["Размер", state.width + " × " + state.height + " см"],
-      ["Тираж", state.quantity.toLocaleString("ru-RU") + " шт"],
-      ["Цена за шт", money(price.unit)]
-    ];
-    if (price.discountPercent > 0) rows.push(["Скидка", "−" + price.discountPercent + "%"]);
-    if (price.setup > 0) rows.push(["Разработка макета", money(price.setup)]);
-    rows.push(["Итого", money(price.total)]);
+    var rows = summaryRows();
 
     /* Пересобираем список только когда содержимое реально изменилось. */
     var sig = rows.map(function (r) { return r[0] + "=" + r[1]; }).join("|");
@@ -1925,20 +2180,104 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     var raw = state.contact.trim();
     var bad = raw.length > 0 && !contactValid();
     el.contactError.hidden = !bad;
-    setText(el.contactError, bad ? "Username не похож на настоящий. Пример: @andrey_2281" : "");
+    setText(el.contactError, bad
+      ? "Контакт не похож на настоящий. Примеры: @andrey_2281, +7 999 123-45-67, mail@site.ru"
+      : "");
     el.contact.setAttribute("aria-invalid", bad ? "true" : "false");
+    el.orderContact.setAttribute("aria-invalid", bad ? "true" : "false");
+  }
+
+  /* Один и тот же контакт и комментарий есть и в конструкторе, и на вкладке
+     заказа — держим поля синхронными, не трогая то, где стоит курсор. */
+  function syncInput(node, value) {
+    if (node && document.activeElement !== node && node.value !== value) node.value = value;
+  }
+
+  function paintForm() {
+    syncInput(el.name, state.name);
+    syncInput(el.delivery, state.delivery);
+    syncInput(el.contact, state.contact);
+    syncInput(el.orderContact, state.contact);
+    syncInput(el.comment, state.comment);
+    syncInput(el.orderComment, state.comment);
+  }
+
+  /* Строки состава заказа — общие для сайдбара конструктора и вкладки заказа. */
+  function summaryRows() {
+    var price = calculate();
+    var rows = [
+      ["Материал", byId(FILMS, state.film).name],
+      ["Дизайн", byId(DESIGNS, state.design).name],
+      ["Цвет", byId(COLORS, state.color).name],
+      ["Форма", SHAPE_NAMES[state.shape] || SHAPE_NAMES.rectangle],
+      ["Размер", trimNum(state.width) + " × " + trimNum(state.height) + " см"],
+      ["Тираж", state.quantity.toLocaleString("ru-RU") + " шт"],
+      ["Цена за шт", money(price.unit)]
+    ];
+    if (price.discountPercent > 0) rows.push(["Скидка", "−" + price.discountPercent + "%"]);
+    if (price.setup > 0) rows.push(["Разработка макета", money(price.setup)]);
+    rows.push(["Итого", money(price.total)]);
+    return rows;
+  }
+
+  var lastOrderSig = "";
+
+  function paintOrder() {
+    var rows = summaryRows();
+    var sig = rows.map(function (r) { return r[0] + "=" + r[1]; }).join("|");
+    if (sig !== lastOrderSig) {
+      lastOrderSig = sig;
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i][0] === "Итого") continue;   /* итог показываем отдельно и крупно */
+        var dt = document.createElement("dt");
+        dt.textContent = rows[i][0];
+        var dd = document.createElement("dd");
+        dd.textContent = rows[i][1];
+        frag.appendChild(dt);
+        frag.appendChild(dd);
+      }
+      el.orderSummary.textContent = "";
+      el.orderSummary.appendChild(frag);
+      setText(el.orderTotal, money(calculate().total));
+    }
+    /* Галочка на вкладке: заявку уже можно отправить. */
+    el.tabOrderBadge.hidden = Boolean(validateOrder());
+
+    /* Подсказка в форме заказа всегда про то, чего не хватает сейчас:
+       поправил имя — текст меняется на «укажите контакт», всё заполнено — гаснет. */
+    if (orderErrorKind === "field") {
+      var pending = validateOrder();
+      if (!pending) showOrderError("", null);
+      else if (text(el.orderError) !== pending) {
+        el.orderError.hidden = false;
+        setText(el.orderError, pending);
+      }
+    }
   }
 
   var submitting = false;
   var lastMainLabel = "";
+  /* kind: "field" — ошибка заполнения (гаснет сама), "network" — связь с сервером. */
+  var orderErrorKind = null;
+
+  function ctaLabel() {
+    if (submitting) return "Отправляем…";
+    if (currentTab === "order") return "Отправить заказ";
+    return "Оформить за " + money(calculate().total);
+  }
 
   function paintSubmit() {
-    var error = validate();
-    el.submit.disabled = Boolean(error) || submitting;
-    setText(el.submit, submitting ? "Отправляем…" : "Оформить заказ");
+    setText(el.submit, ctaLabel());
+    el.submit.disabled = submitting;
 
+    setText(el.orderSend, submitting ? "Отправляем…" : "Отправить заказ");
+    el.orderSend.disabled = submitting;
+
+    /* В Telegram кнопка одна — она же подсказывает, чего не хватает. */
     if (tg && tg.MainButton) {
-      var label = error ? error : (submitting ? "Отправляем…" : "Оформить за " + money(calculate().total));
+      var error = currentTab === "order" ? validateOrder() : null;
+      var label = error ? error : ctaLabel();
       if (lastMainLabel !== label) {
         lastMainLabel = label;
         try { tg.MainButton.setText(label); } catch (e) { /* версия Telegram без setText */ }
@@ -1955,6 +2294,67 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     }
     mark.apply(null, groups);
   }
+
+  /* ==========================================================================
+     ВКЛАДКИ «КОНСТРУКТОР / ОСТАВИТЬ ЗАКАЗ»
+     ====================================================================== */
+
+  var currentTab = "builder";
+
+  function showTab(name, options) {
+    var opts = options || {};
+    currentTab = name === "order" ? "order" : "builder";
+    var builderOn = currentTab === "builder";
+
+    el.panelBuilder.hidden = !builderOn;
+    el.panelOrder.hidden = builderOn;
+    el.tabBuilder.setAttribute("aria-selected", builderOn ? "true" : "false");
+    el.tabBuilder.tabIndex = builderOn ? 0 : -1;
+    el.tabOrder.setAttribute("aria-selected", builderOn ? "false" : "true");
+    el.tabOrder.tabIndex = builderOn ? -1 : 0;
+
+    if (opts.updateHash !== false) {
+      try { window.history.replaceState(null, "", "#" + currentTab); } catch (e) { /* file:// */ }
+    }
+
+    /* Превью после переключения нужно перемерить: у скрытой панели ширина 0. */
+    mark("preview", "order", "progress");
+
+    if (opts.focus && opts.focus.focus) {
+      try { opts.focus.focus({ preventScroll: true }); } catch (e) { opts.focus.focus(); }
+    }
+    if (opts.scroll) {
+      var tabsTop = el.tabs.getBoundingClientRect().top + window.pageYOffset - 12;
+      window.scrollTo({ top: Math.max(0, tabsTop), behavior: opts.smooth === false ? "auto" : "smooth" });
+    }
+  }
+
+  function tabFromHash() {
+    return window.location.hash === "#order" ? "order" : "builder";
+  }
+
+  el.tabs.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-tab]");
+    if (!button) return;
+    if (button.dataset.tab === currentTab) return;
+    showTab(button.dataset.tab);
+    haptic();
+  });
+
+  /* Стрелки переключают вкладки, как в стандартном tablist. */
+  el.tabs.addEventListener("keydown", function (event) {
+    if (["ArrowRight", "ArrowLeft", "Home", "End"].indexOf(event.key) === -1) return;
+    event.preventDefault();
+    var next = event.key === "Home" ? "builder"
+      : event.key === "End" ? "order"
+      : currentTab === "builder" ? "order" : "builder";
+    showTab(next, { focus: next === "builder" ? el.tabBuilder : el.tabOrder });
+  });
+
+  window.addEventListener("hashchange", function () {
+    var wanted = tabFromHash();
+    if (wanted !== currentTab) showTab(wanted, { updateHash: false });
+  });
 
   /* ==========================================================================
      ПОСТРОЕНИЕ УПРАВЛЯЮЩИХ ЭЛЕМЕНТОВ
@@ -2276,6 +2676,39 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   el.comment.addEventListener("input", function () { set("comment", el.comment.value); });
   el.contact.addEventListener("input", function () { set("contact", el.contact.value); });
 
+  /* Поля вкладки «Оставить заказ» пишут в то же состояние. */
+  function bindText(input, key) {
+    input.addEventListener("input", function () { set(key, input.value); });
+  }
+  bindText(el.name, "name");
+  bindText(el.delivery, "delivery");
+  bindText(el.orderContact, "contact");
+  bindText(el.orderComment, "comment");
+
+  /* Enter в однострочных полях заявки — отправка. */
+  [el.name, el.orderContact, el.delivery].forEach(function (input) {
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); submit(); }
+    });
+  });
+
+  /* Кнопки «Изменить конфигурацию» / «Вернуться к конструктору». */
+  ["order-edit", "order-edit-2"].forEach(function (id) {
+    $(id).addEventListener("click", function () {
+      showTab("builder", { scroll: true });
+      haptic();
+    });
+  });
+
+  /* «Оформить ещё один заказ» — возвращаем форму. */
+  $("order-again").addEventListener("click", function () {
+    el.orderSuccess.hidden = true;
+    el.orderForm.hidden = false;
+    showOrderError("");
+    mark("order", "progress");
+    window.scrollTo({ top: Math.max(0, el.tabs.getBoundingClientRect().top + window.pageYOffset - 12), behavior: "smooth" });
+  });
+
   el.qtyMinus.addEventListener("click", function () {
     set("quantity", Math.max(QTY_MIN, state.quantity - 1));
     el.quantity.value = state.quantity;
@@ -2305,6 +2738,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
      ====================================================================== */
 
   $("start-builder").addEventListener("click", function () {
+    if (currentTab !== "builder") showTab("builder", { updateHash: true });
     var target = $("block-film");
     var top = target.getBoundingClientRect().top + window.pageYOffset - 20;
     window.scrollTo({ top: top, behavior: "smooth" });
@@ -2334,13 +2768,17 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
   $("reset-builder").addEventListener("click", function () {
     var keepContact = state.contact.trim() || telegramContact;
-    Object.assign(state, DEFAULTS, { contact: keepContact });
+    var keepName = state.name;
+    Object.assign(state, DEFAULTS, { contact: keepContact, name: keepName });
     persist();
     el.width.value = state.width;
     el.height.value = state.height;
     el.quantity.value = state.quantity;
     el.comment.value = "";
     el.contact.value = state.contact;
+    el.orderSuccess.hidden = true;
+    el.orderForm.hidden = false;
+    showOrderError("");
     resetRotation();
     markAll();
     toast("Настройки сброшены");
@@ -2388,62 +2826,129 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
      ОТПРАВКА
      ====================================================================== */
 
-  function submit() {
-    if (submitting) return;
+  /* Куда отправлять заявку. По умолчанию — тот же домен (см. meta api-base). */
+  function apiUrl(endpoint) {
+    var meta = document.querySelector('meta[name="api-base"]');
+    var base = meta && meta.content ? meta.content.trim().replace(/\/+$/, "") : "";
+    return base + "/" + String(endpoint).replace(/^\/+/, "");
+  }
 
-    var error = validate();
-    if (error) {
-      toast(error, "error");
-      hapticNotify("error");
-      var field = error.indexOf("Ширина") === 0 ? el.width
-        : error.indexOf("Высота") === 0 ? el.height
-        : error.indexOf("Тираж") === 0 ? el.quantity
-        : el.contact;
-      if (field && field.focus) field.focus();
-      return;
-    }
-
-    var price = calculate();
-    var payload = {
-      v: 1,
+  function orderPayload() {
+    return {
+      v: 2,
       film: state.film,
       design: state.design,
       color: state.color,
+      shape: state.shape,
       w: state.width,
       h: state.height,
       qty: state.quantity,
-      comment: state.comment.slice(0, 600),
-      contact: normalizeContact(state.contact).slice(0, 33),
-      client_total: price.total
+      name: state.name.trim().slice(0, 80),
+      contact: normalizeContact(state.contact).slice(0, 64),
+      delivery: state.delivery.trim().slice(0, 160),
+      comment: state.comment.trim().slice(0, 600),
+      client_total: calculate().total
     };
+  }
 
-    /* Путь 1 — Mini App: Telegram сам закроет окно после отправки. */
-    if (tg && typeof tg.sendData === "function") {
-      submitting = true;
-      paintSubmit();
-      if (tg.disableClosingConfirmation) {
-        try { tg.disableClosingConfirmation(); } catch (e) { /* ok */ }
-      }
-      hapticNotify("success");
+  function showOrderError(message, kind) {
+    el.orderError.hidden = !message;
+    setText(el.orderError, message || "");
+    orderErrorKind = message ? (kind || "field") : null;
+    if (message && kind !== "silent") toast(message, "error");
+  }
+
+  function fieldForError(error) {
+    if (error.indexOf("Ширина") === 0) return el.width;
+    if (error.indexOf("Высота") === 0) return el.height;
+    if (error.indexOf("Тираж") === 0) return el.quantity;
+    if (error.indexOf("имя") !== -1) return el.name;
+    return el.orderContact;
+  }
+
+  function focusField(node) {
+    if (!node || !node.focus) return;
+    try { node.focus({ preventScroll: false }); } catch (e) { node.focus(); }
+  }
+
+  /* Экран «заявка отправлена». */
+  function orderSent(result) {
+    var viaBot = !(result && result.order_id);
+    el.orderForm.hidden = true;
+    el.orderSuccess.hidden = false;
+
+    if (viaBot) {
+      el.orderSuccessId.hidden = true;
+      setText(el.orderSuccessText, "Заявка ушла боту в Telegram. Менеджер ответит вам в " +
+        contactKind(state.contact) + ".");
+    } else {
+      el.orderSuccessId.hidden = false;
+      setText(el.orderSuccessId, "Заказ №" + result.order_id);
+      setText(el.orderSuccessText, result.dry_run
+        ? "Тестовый режим: заявка записана на сервере и менеджеру не ушла. Чтобы отправлять по-настоящему, поставьте DRY_RUN=0 в .env."
+        : "Менеджер получил заявку и ответит вам в " + contactKind(state.contact) + ".");
+    }
+
+    hapticNotify("success");
+    toast(viaBot ? "Заявка отправлена в Telegram" : "Заявка №" + result.order_id + " принята", "ok");
+    if (tg && tg.disableClosingConfirmation) {
+      try { tg.disableClosingConfirmation(); } catch (e) { /* старый клиент */ }
+    }
+
+    var top = el.orderSuccess.getBoundingClientRect().top + window.pageYOffset - 80;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  }
+
+  /* Заявка через бота внутри Mini App — если HTTP-сервер недоступен. */
+  function sendViaMiniApp(payload) {
+    if (!tg || typeof tg.sendData !== "function") return false;
+    try {
       tg.sendData(JSON.stringify(payload));
-      /* Страховка: если клиент не закрыл окно — не оставляем кнопку мёртвой. */
-      window.setTimeout(function () {
-        if (!submitting) return;
-        submitting = false;
-        paintSubmit();
-        toast("Заказ отправлен. Можно закрыть окно.", "ok");
-      }, 2500);
+      orderSent({ mini_app: true });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function submit() {
+    if (submitting) return;
+
+    /* На вкладке конструктора кнопка только ведёт к оформлению заказа. */
+    if (currentTab !== "order") {
+      var configError = validateConfig();
+      if (configError) {
+        toast(configError, "error");
+        hapticNotify("error");
+        focusField(fieldForError(configError));
+        return;
+      }
+      var needName = state.name.trim().length < 2;
+      showTab("order", {
+        scroll: true,
+        focus: needName ? el.name : (contactValid() ? null : el.orderContact)
+      });
+      haptic();
       return;
     }
 
-    /* Путь 2 — обычный браузер: защита от двойного нажатия + таймаут. */
+    var error = validateOrder();
+    if (error) {
+      showOrderError(error);
+      hapticNotify("error");
+      focusField(fieldForError(error));
+      return;
+    }
+    showOrderError("");
+
+    var payload = orderPayload();
     submitting = true;
     paintSubmit();
 
     var controller = typeof AbortController === "function" ? new AbortController() : null;
     var timer = window.setTimeout(function () { if (controller) controller.abort(); }, 12000);
 
-    fetch("api/order", {
+    fetch(apiUrl("api/order"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.assign(
@@ -2457,25 +2962,23 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
         window.clearTimeout(timer);
         submitting = false;
         paintSubmit();
-        if (data && data.ok) {
-          toast("Заявка №" + data.order_id + " принята", "ok");
-          hapticNotify("success");
-          if (tg && tg.close) tg.close();
-        } else {
-          toast((data && data.error) || "Не удалось отправить заказ", "error");
-          hapticNotify("error");
-        }
+        if (data && data.ok) { orderSent(data); return; }
+        if (sendViaMiniApp(payload)) return;
+        showOrderError((data && data.error) || "Не удалось отправить заказ. Напишите нам: @ckot_23", "network");
+        hapticNotify("error");
       })
       .catch(function () {
         window.clearTimeout(timer);
         submitting = false;
         paintSubmit();
-        toast("Нет связи с сервером. Откройте мини-приложение из бота.", "error");
+        if (sendViaMiniApp(payload)) return;
+        showOrderError("Нет связи с сервером. Попробуйте ещё раз или напишите в Telegram @ckot_23", "network");
         hapticNotify("error");
       });
   }
 
   el.submit.addEventListener("click", submit);
+  el.orderSend.addEventListener("click", submit);
 
   /* ==========================================================================
      TELEGRAM
@@ -2538,6 +3041,11 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   el.quantity.value = state.quantity;
   el.comment.value = state.comment;
   el.contact.value = state.contact;
+  el.name.value = state.name;
+  el.delivery.value = state.delivery;
+
+  /* Открываем вкладку из адреса: /#order — сразу форма заказа. */
+  showTab(tabFromHash(), { updateHash: false });
 
   markAll();
 
