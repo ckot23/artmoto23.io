@@ -198,7 +198,11 @@ button:disabled { opacity: .5; cursor: default; }
     el.updates.textContent = stats.updates;
     el.errors.textContent = stats.errors;
     el.dot.className = "dot" + (status.running ? " on" : (stats.errors ? " err" : ""));
-    el.stateText.textContent = status.running ? "Бот работает — заявки уходят модератору" : "Бот не запущен";
+    el.stateText.textContent = status.running
+      ? "Бот работает — заявки уходят модератору"
+      : (status.conflicts
+        ? "Остановлен: обновления забирает другой потребитель (сервер сайта, Actions или вторая вкладка)"
+        : "Бот не запущен");
     el.start.disabled = status.running || !settings.token;
     el.stop.disabled = !status.running;
   }

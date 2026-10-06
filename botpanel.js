@@ -31,12 +31,32 @@ function hintFor(code, description) {
   if (code === 401) return "токен недействителен: скопируйте свежий у @BotFather (/mybots → API Token)";
   if (code === 403) return "получатель не начинал диалог с ботом: пусть нажмёт «Start» в чате с ботом";
   if (code === 400 && text.indexOf("chat not found") !== -1) return "chat_id указан неверно: напишите боту /id и возьмите число оттуда";
-  if (code === 409) return "у бота уже установлен вебхук или запущен второй потребитель обновлений (другая вкладка, GitHub Actions, node bot.js): оставьте что-то одно";
+  if (code === 409) return "очередь занята (409 Conflict): её держит другой потребитель — сервер сайта, "
+    + "вторая вкладка, GitHub Actions или node bot.js: оставьте что-то одно";
   if (code === 429) return "Telegram просит подождать: слишком много запросов";
   if (text.indexOf("failed to fetch") !== -1 || text.indexOf("networkerror") !== -1) {
     return "браузер не смог обратиться к api.telegram.org: проверьте интернет, блокировщики и VPN";
   }
   return "";
+}
+
+/* Короткий запрос JSON с таймаутом. Любая ошибка (нет связи, CORS, чужой
+   сервер) = «не подтверждено» — тогда потребитель работает сам. */
+function fetchJson(fetchImpl, url, timeoutMs) {
+  if (!url || !fetchImpl) return Promise.resolve(null);
+  var controller = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = null;
+  if (controller) timer = setTimeout(function () { controller.abort(); }, timeoutMs || 6000);
+  return fetchImpl(url, {
+    headers: { "Accept": "application/json" },
+    signal: controller ? controller.signal : undefined
+  }).then(function (response) {
+    if (timer) clearTimeout(timer);
+    return response.json();
+  }).catch(function () {
+    if (timer) clearTimeout(timer);
+    return null;
+  });
 }
 
 /* Создаёт бота, который живёт в браузерной вкладке. */
@@ -51,6 +71,7 @@ function createBot(options) {
   var retryDelayMs = options.retryDelayMs || 5000;      /* пауза после ошибки */
   var hiddenDelayMs = options.hiddenDelayMs || 3000;    /* пауза, если вкладка свёрнута */
   var minCycleMs = options.minCycleMs || 1000;          /* не частим с запросами к Telegram */
+  var conflictDelayMs = options.conflictDelayMs || 0;   /* пауза при 409 (0 — по нарастающей) */
   var log = options.log || function () {};
   var onStatus = options.onStatus || function () {};
   var state = Core.newState();
@@ -58,14 +79,28 @@ function createBot(options) {
   var offset = 0;
   var stopped = false;
   var loop = null;                 /* фоновая задача опроса (для тестов и stop) */
-  var stats = { orders: 0, updates: 0, errors: 0 };
+  var stats = { orders: 0, updates: 0, errors: 0, conflicts: 0 };
+
+  /* Telegram отдаёт getUpdates только одному. Если очередь занята, эта
+     вкладка не спорит: сначала отступает, а после третьего 409 подряд
+     останавливается — значит, обновления забирает постоянный сервер. */
+  var CONFLICT_STOP_AFTER = 3;
+  var conflictStreak = 0;
 
   function note(message, kind) { log(message, kind || "info"); }
+
+  /* /api/health сервера: принимает ли он обновления сам. */
+  function serverHealth(url) { return fetchJson(fetchImpl, url, 6000); }
 
   /* Интерфейсу всегда отдаём полное состояние, иначе плашка «бот работает»
      гасла после первой же заявки. */
   function status() {
-    return { running: running, stats: stats, pending: Object.keys(state.pendingContact).length };
+    return {
+      running: running,
+      stats: stats,
+      conflicts: stats.conflicts,     /* сколько раз очередь была занята (409) */
+      pending: Object.keys(state.pendingContact).length
+    };
   }
 
   function call(method, payload) {
@@ -130,8 +165,25 @@ function createBot(options) {
           note("getUpdates: " + reason +
             (hintFor(data && data.error_code, reason) ? " → " + hintFor(data && data.error_code, reason) : ""), "error");
           if (data && data.error_code === 401) { stop(); return; }
+          /* 409 Conflict: очередь getUpdates занята — сервер сайта, вторая
+             вкладка, GitHub Actions или node bot.js. Спорить бессмысленно:
+             отступаем, а если очередь так и занята — останавливаемся. */
+          if (data && data.error_code === 409) {
+            conflictStreak++;
+            stats.conflicts++;
+            if (conflictStreak >= CONFLICT_STOP_AFTER) {
+              note("Обновления стабильно забирает кто-то другой (постоянный сервер сайта, " +
+                "GitHub Actions или вторая вкладка). Эта вкладка останавливается, чтобы не спорить " +
+                "за getUpdates: заявки всё равно доходят. Если принимать их должна вкладка — " +
+                "остановите сервер и нажмите «Запустить» снова.", "warn");
+              stop();
+              return;
+            }
+            return pause(conflictDelayMs || Core.conflictBackoffMs(conflictStreak)).then(tick);
+          }
           return pause(retryDelayMs).then(tick);
         }
+        conflictStreak = 0;
         var batch = Array.isArray(data.result) ? data.result : [];
         var chain = Promise.resolve();
         batch.forEach(function (update) {
@@ -211,20 +263,40 @@ function createBot(options) {
       if (running) return Promise.resolve();
       running = true;
       stopped = false;
-      note("Бот запущен. Пока эта вкладка открыта, заявки уходят модератору.", "ok");
+      conflictStreak = 0;
       onStatus(status());
       /* Если остался вебхук от прежней настройки, Telegram не отдаст
-         обновления через getUpdates — снимаем его. */
+         обновления через getUpdates — снимаем его. Но живой вебхук, по
+         которому работает сервер сайта, снимать нельзя: иначе заявки
+         перестанут приходить на сервер, а вкладка работает не всегда. */
       return call("getWebhookInfo", {}).then(function (info) {
         var url = info && info.ok && info.result && info.result.url;
         if (!url) return null;
-        note("Снимаю старый вебхук (" + url + "), иначе обновления не придут", "warn");
-        return call("deleteWebhook", { drop_pending_updates: false });
+        if (!Core.webhookAlive(info, Date.now())) {
+          note("Снимаю неработающий вебхук (" + url + "), иначе обновления не придут", "warn");
+          return call("deleteWebhook", { drop_pending_updates: false });
+        }
+        return serverHealth(Core.serverHealthUrl(url, "")).then(function (health) {
+          if (Core.serverTakesUpdates(health)) {
+            note("Обновления принимает сервер сайта по вебхуку " + url + " — бот уже работает.", "ok");
+            note("Эта вкладка останавливается: два получателя с одним токеном — это 409 Conflict и потерянные заявки.", "warn");
+            stop();
+            return "skip";
+          }
+          note("Снимаю вебхук " + url + ": сервер по нему не отвечает — обновления будет забирать эта вкладка", "warn");
+          return call("deleteWebhook", { drop_pending_updates: false });
+        });
       }).catch(function (error) {
         /* Нет связи — не мешаем запуску: цикл сам сообщит об этом в журнале. */
         note("Не удалось проверить вебхук: " + error.message, "warn");
         return null;
-      }).then(function () {
+      }).then(function (result) {
+        if (result === "skip" || stopped) {
+          /* Обновления забирает сервер — запускать опрос не нужно. */
+          loop = Promise.resolve();
+          return { running: false, processed: stats.updates };
+        }
+        note("Бот запущен. Пока эта вкладка открыта, заявки уходят модератору.", "ok");
         loop = tick();                 /* фоновая работа, ошибки видны в журнале */
         loop.catch(function () {});
         return { running: true, processed: stats.updates };

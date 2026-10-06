@@ -27,15 +27,26 @@ var ROOT = path.join(__dirname, "..");
 var sent = [];                  /* куда и что бот отправил */
 var updates = [];               /* очередь для getUpdates */
 var failure = null;             /* если задано — sendMessage отвечает ошибкой */
+var calls = [];                 /* какие методы Bot API вызывались */
+var webhook = { url: "", last_error_message: "", last_error_date: 0 };
+var serverHealth = null;        /* что отвечает /api/health сервера (null — не отвечает) */
+var getUpdatesAnswer = null;    /* если задано — getUpdates отвечает этой ошибкой */
 var realFetch = globalThis.fetch;
 
 globalThis.fetch = function (url, options) {
   var method = String(url).replace(/^.*\//, "");
   var body = JSON.parse((options && options.body) || "{}");
+  calls.push(method);
+  if (method === "health") {
+    /* Проверка сервера: он либо отвечает, либо недоступен. */
+    if (!serverHealth) return Promise.reject(new TypeError("Failed to fetch"));
+    return json(serverHealth);
+  }
   if (method === "getMe") return json({ ok: true, result: { id: 1, username: "testbot" } });
-  if (method === "getWebhookInfo") return json({ ok: true, result: { url: "" } });
+  if (method === "getWebhookInfo") return json({ ok: true, result: webhook });
   if (method === "deleteWebhook") return json({ ok: true, result: true });
   if (method === "getUpdates") {
+    if (getUpdatesAnswer) return json(getUpdatesAnswer);
     var batch = updates.slice();
     updates = [];
     return json({ ok: true, result: batch });
@@ -367,6 +378,101 @@ chain = chain.then(function () {
     var workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/bot.yml"), "utf8");
     assert.ok(workflow.indexOf("bot.js --once") !== -1, "workflow не запускает бота");
     assert.ok(workflow.indexOf("secrets.BOT_TOKEN") !== -1, "нет токена из секретов");
+  });
+});
+
+/* 11. Один бот — один потребитель: если сервер сайта на связи и сам забирает
+      обновления, бот уступает — иначе оба ловят 409 Conflict. */
+chain = chain.then(function () {
+  console.log("\n11. Сервер сайта и бот не спорят за getUpdates");
+  bot.CONFIG.serverUrl = "https://orders.example.com";
+  bot.CONFIG.force = false;
+  bot.CONFIG.yieldToServer = true;
+  calls.length = 0;
+  updates = [message(777011, "/start " + L.startParam(ORDER), { updateId: 910001 })];
+  serverHealth = { ok: true, updates: "poll", updates_detail: { mode: "poll", alive: true, last_ok_age_ms: 3000 } };
+  return bot.drainOnce({ once: true }).then(function (processed) {
+    check("живой сервер: бот пропускает запуск, а не спорит за очередь", function () {
+      assert.strictEqual(processed, 0, "бот забрал обновления при работающем сервере");
+      assert.ok(/сервер/.test(bot.lastRun().skipped), "причина: " + bot.lastRun().skipped);
+      assert.strictEqual(calls.indexOf("getUpdates"), -1, "бот всё равно вызвал getUpdates");
+    });
+
+    /* Сервер жив, но обновления не принимает (POLL=0) — работать должен бот. */
+    serverHealth = { ok: true, updates: "off", updates_detail: { mode: "off", alive: false } };
+    calls.length = 0;
+    updates = [message(777012, "/start " + L.startParam(ORDER), { updateId: 910002 })];
+    return bot.drainOnce({ once: true }).then(function (processed2) {
+      check("сервер обновления не принимает — бот работает сам", function () {
+        assert.strictEqual(processed2, 1, "обработано: " + processed2);
+        assert.ok(toModerator(), "заявка не ушла модератору");
+      });
+
+      /* Сервер не отвечает (выключен, спит) — забирает бот. */
+      serverHealth = null;
+      calls.length = 0;
+      updates = [message(777013, "/start " + L.startParam(ORDER), { updateId: 910003 })];
+      return bot.drainOnce({ once: true }).then(function (processed3) {
+        check("сервер недоступен — бот забирает заявки", function () {
+          assert.strictEqual(processed3, 1, "обработано: " + processed3);
+        });
+      });
+    });
+  });
+});
+
+/* 12. Вебхук: живой снимать нельзя — по нему работает сервер. */
+chain = chain.then(function () {
+  console.log("\n12. Вебхук сервера");
+  bot.CONFIG.serverUrl = "";
+  webhook = { url: "https://orders.example.com/api/tg-webhook", last_error_message: "", last_error_date: 0 };
+  serverHealth = { ok: true, updates: "webhook", updates_detail: { mode: "webhook", alive: true } };
+  calls.length = 0;
+  updates = [];
+  return bot.drainOnce({ once: true }).then(function (processed) {
+    check("живой вебхук работающего сервера бот не снимает", function () {
+      assert.strictEqual(processed, 0);
+      assert.strictEqual(calls.indexOf("deleteWebhook"), -1, "бот снял чужой вебхук");
+      assert.ok(/вебхук/.test(bot.lastRun().skipped), "причина: " + bot.lastRun().skipped);
+    });
+
+    /* Сломанный вебхук: Telegram не может доставить обновления. */
+    webhook = {
+      url: "https://old.example.com/api/tg-webhook",
+      last_error_message: "Wrong response from the webhook: 404 Not Found",
+      last_error_date: Math.floor(Date.now() / 1000) - 120
+    };
+    serverHealth = null;
+    calls.length = 0;
+    updates = [message(777014, "/start " + L.startParam(ORDER), { updateId: 910004 })];
+    return bot.drainOnce({ once: true }).then(function (processed2) {
+      check("сломанный вебхук бот снимает и забирает заявку", function () {
+        assert.ok(calls.indexOf("deleteWebhook") !== -1, "старый вебхук не снят");
+        assert.strictEqual(processed2, 1, "обработано: " + processed2);
+      });
+    });
+  });
+});
+
+/* 13. Очередь занята: разовый бот уступает, а не тратит весь бюджет впустую. */
+chain = chain.then(function () {
+  console.log("\n13. Очередь getUpdates занята");
+  webhook = { url: "", last_error_message: "", last_error_date: 0 };
+  serverHealth = null;
+  getUpdatesAnswer = {
+    ok: false, error_code: 409,
+    description: "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
+  };
+  calls.length = 0;
+  var startedAt = Date.now();
+  return bot.drainOnce({ once: true, conflictGiveUpMs: 100 }).then(function (processed) {
+    getUpdatesAnswer = null;
+    check("при 409 бот быстро уступает и завершает запуск", function () {
+      assert.strictEqual(processed, 0);
+      assert.ok(/другой потребитель/.test(bot.lastRun().skipped), "причина: " + bot.lastRun().skipped);
+      assert.ok(bot.lastRun().conflicts >= 2, "конфликтов: " + bot.lastRun().conflicts);
+      assert.ok(Date.now() - startedAt < 10000, "спор занял " + (Date.now() - startedAt) + " мс");
+    });
   });
 });
 

@@ -6,6 +6,7 @@
    Запуск:            node server.js
    Проверка логики:   node server.js --selftest
    Тестовая отправка: node server.js --send-test
+   Кто забирает обновления бота: node server.js --doctor
 
    Без зависимостей — нужен только Node 18+ (встроенный fetch и http).
 
@@ -30,6 +31,9 @@ var path = require("path");
 var crypto = require("crypto");
 var P = require("./pricing.js");
 var E = require("./env.js");
+/* botcore.js — общая логика бота; оттуда же правила «один бот — один
+   потребитель обновлений» (паузы при 409, проверка вебхука, здоровье). */
+var Core = require("./botcore.js");
 
 var ROOT = E.ROOT;
 
@@ -62,8 +66,54 @@ if (!CONFIG.botToken || !CONFIG.moderatorId) CONFIG.dryRun = true;
 /* Как сервер получает обновления от Telegram (заказы из Mini App, команды):
      poll  — слушаем getUpdates;
      webhook — обновления приходят на /api/tg-webhook;
-     off   — обновления не принимаем. */
-var updates = { mode: "off", url: "", reason: "" };
+     off   — обновления не принимаем.
+
+   Поля lastOkAt / lastConflictAt и счётчик conflicts нужны не только для
+   логов: по ним /api/health отвечает «обновления забираю я», и тогда разовый
+   бот (GitHub Actions) или панель в браузере уступают, вместо того чтобы
+   спорить за getUpdates и ловить 409 Conflict. */
+var updates = {
+  mode: "off", url: "", reason: "",
+  lastOkAt: 0, lastConflictAt: 0, conflicts: 0,
+  lastError: "", lastErrorAt: 0
+};
+
+/* Меняем режим, не теряя счётчики (по ним решается, жив ли приём). */
+function setValues(target, patch) {
+  Object.keys(patch).forEach(function (key) { target[key] = patch[key]; });
+  return target;
+}
+
+/* Меняет режим приёма обновлений, сохраняя статистику опроса. */
+function setUpdates(patch) {
+  updates = setValues(updates, patch);
+  return updates;
+}
+
+/* Здоровье приёма обновлений — его читает /api/health и бот на GitHub Actions.
+   alive = «обновления прямо сейчас кто-то забирает». */
+function updatesHealth(now) {
+  var n = now || Date.now();
+  var okAge = updates.lastOkAt ? n - updates.lastOkAt : null;
+  var conflictAge = updates.lastConflictAt ? n - updates.lastConflictAt : null;
+  var alive = updates.mode === "webhook" || (updates.mode === "poll" && (
+    (okAge !== null && okAge < Core.POLL_FRESH_MS) ||
+    (conflictAge !== null && conflictAge < Core.POLL_CONFLICT_FRESH_MS)
+  ));
+  return {
+    mode: updates.mode,
+    webhook: updates.url || null,
+    alive: alive,
+    reason: updates.reason || "",
+    last_ok_at: updates.lastOkAt ? new Date(updates.lastOkAt).toISOString() : null,
+    last_ok_age_ms: okAge,
+    conflicts: updates.conflicts || 0,
+    last_conflict_at: updates.lastConflictAt ? new Date(updates.lastConflictAt).toISOString() : null,
+    conflict_age_ms: conflictAge,
+    last_error: updates.lastError || null,
+    last_error_at: updates.lastErrorAt ? new Date(updates.lastErrorAt).toISOString() : null
+  };
+}
 
 var TG_API = "https://api.telegram.org/bot";
 var ORDERS_LOG = path.join(ROOT, "orders.jsonl");
@@ -181,28 +231,28 @@ function registerWebhook() {
    иначе заказы, отправленные сайтом через tg.sendData, потерялись бы. */
 function resolveUpdatesMode() {
   if (CONFIG.poll === "0" || CONFIG.poll === "off" || CONFIG.poll === "no") {
-    updates = { mode: "off", url: "", reason: "POLL=0" };
+    setUpdates({ mode: "off", url: "", reason: "POLL=0" });
     return Promise.resolve(updates);
   }
   if (CONFIG.poll === "1" || CONFIG.poll === "on" || CONFIG.poll === "yes") {
-    updates = { mode: "poll", url: "", reason: "POLL=1" };
+    setUpdates({ mode: "poll", url: "", reason: "POLL=1" });
     return Promise.resolve(updates);
   }
   if (!CONFIG.botToken) {
-    updates = { mode: "off", url: "", reason: "нет токена бота" };
+    setUpdates({ mode: "off", url: "", reason: "нет токена бота" });
     return Promise.resolve(updates);
   }
   return tgCall("getWebhookInfo", {}).then(function (data) {
     var url = data && data.ok && data.result && data.result.url;
-    updates = url
+    setUpdates(url
       ? { mode: "webhook", url: url, reason: "вебхук уже установлен" }
-      : { mode: "poll", url: "", reason: "POLL=auto, вебхука нет" };
+      : { mode: "poll", url: "", reason: "POLL=auto, вебхука нет" });
     return updates;
   }).catch(function (error) {
     /* Telegram не ответил (сеть, файрвол у хостинга): не выключаем приём
        обновлений, а пробуем слушать getUpdates — лучше потерять вебхук,
        чем заказ. */
-    updates = { mode: "poll", url: "", reason: "нет связи с Telegram при старте: " + error.message };
+    setUpdates({ mode: "poll", url: "", reason: "нет связи с Telegram при старте: " + error.message });
     return updates;
   });
 }
@@ -478,6 +528,10 @@ var server = http.createServer(function (req, res) {
   if (req.method === "OPTIONS") { res.writeHead(204).end(); return; }
 
   if (pathname === "/api/health") {
+    /* Открыт для всех доменов: секретов тут нет, а бот (GitHub Actions,
+       панель в браузере) по нему решает, не пора ли уступить очередь. */
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    var detail = updatesHealth();
     sendJson(res, 200, {
       ok: true,
       dry_run: CONFIG.dryRun,
@@ -485,6 +539,10 @@ var server = http.createServer(function (req, res) {
       moderator: Boolean(CONFIG.moderatorId),
       poll: updates.mode === "poll",
       updates: updates.mode,
+      /* Полная картина приёма обновлений — по ней решается, кто из
+         потребителей бота сейчас главный. */
+      updates_detail: detail,
+      takes_updates: detail.alive,
       order_path: CONFIG.dryRun ? "лог (тестовый режим)" : "телеграм модератору"
     });
     return;
@@ -562,32 +620,167 @@ var stopping = false;
 
 function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
 
+/* Опрос getUpdates. Важно: Telegram отдаёт обновления только одному
+   потребителю. Если очередь уже держит кто-то ещё — Actions, вкладка bot.html,
+   node bot.js или второй сервер с тем же BOT_TOKEN — приходит 409 Conflict.
+   Постоянный сервер не сдаётся и не забивает лог: он отступает с нарастающей
+   паузой и забирает очередь, как только она освободится. */
 function pollLoop() {
   var offset = 0;
+  var conflictStreak = 0;       /* 409 подряд */
+  var conflictSince = 0;
+  var stopped = false;
   console.log("[poll] слушаю обновления бота — заказы из Mini App будут приходить сюда");
+
+  /* Кто может держать очередь, кроме этого сервера. */
+  function rivalsHint() {
+    return "другой потребитель: GitHub Actions «Бот заявок», открытая вкладка bot.html, " +
+      "node bot.js или второй сервер с тем же BOT_TOKEN";
+  }
+
+  function onConflict(reason) {
+    conflictStreak++;
+    setUpdates({ conflicts: (updates.conflicts || 0) + 1, lastConflictAt: Date.now() });
+    if (!conflictSince) conflictSince = Date.now();
+    var wait = Core.conflictBackoffMs(conflictStreak);
+    if (conflictStreak === 1) {
+      console.error("[poll] getUpdates: 409 Conflict — " + reason);
+      console.error("[poll] → обновления забирает " + rivalsHint() + ".");
+      console.error("[poll] → заявки с сайта (кнопка «Отправить заявку») уходят модератору напрямую и не зависят от этого;" +
+        " теряться могут только заказы из Mini App. Повторю через " + Math.max(1, Math.round(wait / 1000)) + " с.");
+    } else if (conflictStreak === 3) {
+      console.error("[poll] 409 Conflict: очередь занята уже " +
+        Math.round((Date.now() - conflictSince) / 1000) + " с: " +
+        rivalsHint() + ". Остановите лишний процесс — иначе заказы из Mini App будут приходить с задержкой.");
+    }
+    /* Каждую третью попытку проверяем, не появился ли вебхук: если его
+       поставил другой сервер (WEBHOOK_AUTO=1), обновления придут туда,
+       и спорить за getUpdates больше незачем. */
+    if (conflictStreak % 3 !== 0) return sleep(wait);
+    return tgCall("getWebhookInfo", {}).then(function (info) {
+      var url = info && info.ok && info.result && info.result.url;
+      if (!url) return sleep(wait);
+      setUpdates({ mode: "webhook", url: url, reason: "вебхук появился во время опроса" });
+      stopped = true;
+      console.log("[poll] появился вебхук " + url + " — обновления принимает он, опрос останавливаю");
+      return null;
+    }).catch(function () { return sleep(wait); });
+  }
+
   (function tick() {
-    if (stopping) return;
+    if (stopping || stopped) return;
     tgCall("getUpdates", { offset: offset, timeout: 25, allowed_updates: ["message"] })
       .then(function (data) {
+        if (stopping || stopped) return;
         if (data && data.ok && Array.isArray(data.result)) {
+          if (conflictStreak) console.log("[poll] очередь свободна — снова принимаю обновления");
+          conflictStreak = 0;
+          conflictSince = 0;
+          setUpdates({ lastOkAt: Date.now(), lastError: "" });
           data.result.forEach(function (update) {
             offset = update.update_id + 1;
             handleUpdate(update).catch(function () { /* одна ошибка не должна ронять цикл */ });
           });
-        } else if (data && !data.ok) {
-          console.error("[poll] Telegram ответил ошибкой: " + (data.description || "?") +
-            (data.error_code === 409
-              ? " → у бота уже установлен вебхук или запущен второй сервер: отключите одно из двух"
-              : ""));
-          return sleep(15000);
+          return;
         }
+        var code = data && data.error_code;
+        var reason = (data && data.description) || "нет ответа Telegram";
+        setUpdates({ lastError: reason, lastErrorAt: Date.now() });
+        if (code === 409) return onConflict(reason);
+        var hint = telegramHint(code, reason);
+        console.error("[poll] Telegram ответил ошибкой: " + reason + (hint ? " → " + hint : ""));
+        return sleep(15000);
       })
       .catch(function (error) {
+        setUpdates({ lastError: error.message, lastErrorAt: Date.now() });
         console.error("[poll] сеть недоступна: " + error.message);
         return sleep(5000);
       })
       .then(function () { setTimeout(tick, 300); });
   })();
+}
+
+/* Как обычный вызов Bot API, но сетевая ошибка не роняет команду:
+   диагностика должна объяснить проблему, а не упасть на ней. */
+function safeTgCall(method, payload) {
+  return tgCall(method, payload).catch(function (error) {
+    console.error("⚠️  api.telegram.org недоступен: " + error.message);
+    return null;
+  });
+}
+
+function doctor() {
+  var botInfo = null;
+  var webhook = null;
+  if (!CONFIG.botToken) {
+    console.log("");
+    console.log("BOT_TOKEN не задан — проверить бота нельзя.");
+    console.log("Заполните BOT_TOKEN и MODERATOR_ID в .env (образец — .env.example) и запустите снова.");
+    console.log("");
+    return Promise.resolve();
+  }
+  return Promise.resolve()
+    .then(function () {
+      return botDiagnostics().then(function (info) { botInfo = info; });
+    })
+    .then(function () {
+      return safeTgCall("getWebhookInfo", {}).then(function (data) { webhook = data && data.ok ? data.result : null; });
+    })
+    .then(function () {
+      if (!webhook) {
+        console.log("");
+        console.log("Не удалось получить состояние бота от Telegram — проверьте интернет и токен.");
+        console.log("");
+        return;
+      }
+      var hookUrl = webhook && webhook.url;
+      console.log("");
+      console.log("Вебхук: " + (hookUrl ? hookUrl : "не установлен"));
+      if (hookUrl) {
+        console.log("  ждёт доставки обновлений: " + (webhook.pending_update_count || 0));
+        if (webhook.last_error_message) {
+          console.log("  последняя ошибка доставки: " + webhook.last_error_message +
+            " (" + new Date(webhook.last_error_date * 1000).toLocaleString("ru-RU") + ")");
+        }
+      }
+      if (hookUrl && Core.webhookAlive({ ok: true, result: webhook }, Date.now())) {
+        console.log("");
+        console.log("Обновления приходят на вебхук — getUpdates-потребители (вкладка bot.html,");
+        console.log("GitHub Actions «Бот заявок», node bot.js) будут получать 409 Conflict: это не");
+        console.log("поломка, а защита Telegram от двух получателей. Оставьте что-то одно.");
+        return;
+      }
+      /* Вебхука нет: проверяем, не держит ли очередь getUpdates кто-то ещё.
+         Проба с timeout=0 и offset=0 обновления не подтверждает — ничего не теряется. */
+      return safeTgCall("getUpdates", { offset: 0, timeout: 0, limit: 1, allowed_updates: ["message"] })
+        .then(function (data) {
+          if (!data) {
+            console.log("");
+            console.log("Не удалось проверить очередь — см. ошибку выше.");
+            return;
+          }
+          console.log("");
+          if (data && data.ok) {
+            console.log("Очередь getUpdates свободна: обновления никто не забирает.");
+            console.log("Запустите сервер (node server.js) — он начнёт принимать заказы из Mini App.");
+            return;
+          }
+          if (data && data.error_code === 409) {
+            console.log("Очередь getUpdates уже занята: " + (data.description || "409 Conflict"));
+            console.log("→ обновления забирает другой потребитель: вкладка bot.html,");
+            console.log("  GitHub Actions «Бот заявок», node bot.js или второй сервер с тем же BOT_TOKEN.");
+            console.log("→ остановите лишний процесс (или задайте SERVER_URL, чтобы Actions сами уступали серверу).");
+            return;
+          }
+          console.log("Не удалось проверить очередь: " + ((data && data.description) || "нет ответа Telegram"));
+        });
+    })
+    .then(function () {
+      console.log("");
+      console.log("Заявки: " + (CONFIG.dryRun ? "тестовый режим (только лог)" : "уходят модератору " + CONFIG.moderatorId));
+      if (botInfo) console.log("Проверить отправку: node server.js --send-test");
+      console.log("");
+    });
 }
 
 /* ---------------------------------------------------------------------------
@@ -766,6 +959,14 @@ function main() {
       console.log(data && data.ok ? "Вебхук установлен ✅" : "Ошибка: " + ((data && data.description) || "?"));
       process.exit(data && data.ok ? 0 : 1);
     });
+  } else if (args.indexOf("--doctor") !== -1) {
+    /* «Бот не работает»: показываем, кто забирает обновления и что делать. */
+    doctor().then(function () {
+      process.exit(0);
+    }, function (error) {
+      console.error("Не удалось проверить бота: " + error.message);
+      process.exit(1);
+    });
   } else if (args.indexOf("--unwebhook") !== -1) {
     tgCall("deleteWebhook", { drop_pending_updates: true }).then(function (data) {
       console.log(data && data.ok ? "Вебхук удалён ✅" : "Ошибка: " + ((data && data.description) || "?"));
@@ -782,6 +983,8 @@ function main() {
 module.exports = {
   CONFIG: CONFIG,
   updates: function () { return updates; },
+  updatesHealth: updatesHealth,
+  doctor: doctor,
   server: server,
   startServer: startServer,
   pollLoop: pollLoop,

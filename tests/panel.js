@@ -53,6 +53,10 @@ function makeFetch(options) {
       if (opts.badToken) return reply({ ok: false, error_code: 401, description: "Unauthorized" });
       return reply({ ok: true, result: { id: 42, username: "my_stickers_bot", first_name: "Наклейки" } });
     }
+    if (method === "health") {
+      /* /api/health сервера сайта: по нему панель решает, уступать или нет. */
+      return reply(opts.health || { ok: true, updates: "off", updates_detail: { mode: "off", alive: false } });
+    }
     if (method === "getWebhookInfo") {
       return reply({ ok: true, result: { url: opts.webhookUrl || "" } });
     }
@@ -222,15 +226,62 @@ chain = chain.then(function () {
   });
 });
 
-/* 6. Вебхук снимается сам, иначе обновления не придут. */
+/* 6. Вебхук: неработающий снимается сам, живой (сервер работает) — нет. */
 chain = chain.then(function () {
-  console.log("\n6. Старый вебхук");
+  console.log("\n6. Вебхук");
   var fetchStub = makeFetch({ webhookUrl: "https://old.example.com/api/tg-webhook" });
   var bot = Panel.createBot({ token: "111:AAA", moderatorId: "7114829971", fetch: fetchStub, retryDelayMs: 10, log: function () {} });
   return bot.start().then(function () {
     bot.stop();
-    check("панель снимает чужой вебхук перед работой", function () {
+    check("панель снимает неработающий вебхук перед работой", function () {
       assert.ok(fetchStub.log.some(function (c) { return c.method === "deleteWebhook"; }), "deleteWebhook не вызван");
+    });
+
+    /* Живой вебхук, по которому работает сервер сайта, снимать нельзя:
+       иначе заявки перестанут приходить на сервер. */
+    var liveLogs = [];
+    var live = makeFetch({
+      webhookUrl: "https://orders.example.com/api/tg-webhook",
+      health: { ok: true, updates: "webhook", updates_detail: { mode: "webhook", alive: true } }
+    });
+    var liveBot = Panel.createBot({
+      token: "111:AAA", moderatorId: "7114829971", fetch: live,
+      retryDelayMs: 10, log: function (m) { liveLogs.push(m); }
+    });
+    return liveBot.start().then(function (result) {
+      check("живой вебхук работающего сервера панель не снимает", function () {
+        assert.ok(!live.log.some(function (c) { return c.method === "deleteWebhook"; }), "панель сняла чужой вебхук");
+        assert.strictEqual(result.running, false, "панель осталась работать — начнётся 409 Conflict");
+      });
+      check("панель объясняет, почему остановилась", function () {
+        var text = liveLogs.join(" | ");
+        assert.ok(text.indexOf("сервер сайта") !== -1, text);
+        assert.ok(text.indexOf("409") !== -1, "не сказано про 409 Conflict");
+      });
+    });
+  });
+});
+
+/* 6b. Очередь стабильно занята — панель уступает, а не спортит до бесконечности. */
+chain = chain.then(function () {
+  console.log("\n6b. Очередь getUpdates занята");
+  var logs = [];
+  var conflict = makeFetch({ conflict: true });
+  var bot = Panel.createBot({
+    token: "111:AAA", moderatorId: "7114829971", fetch: conflict,
+    retryDelayMs: 10, conflictDelayMs: 10, log: function (m) { logs.push(m); }
+  });
+  return bot.start().then(function () {
+    return new Promise(function (resolve) { setTimeout(resolve, 300); });
+  }).then(function () {
+    check("панель останавливается, если очередь держит кто-то другой", function () {
+      assert.strictEqual(bot.status.running, false, "панель продолжает спорить за getUpdates");
+      assert.ok(bot.status.conflicts >= 3, "конфликтов: " + bot.status.conflicts);
+    });
+    check("причина остановки понятна владельцу", function () {
+      var text = logs.join(" | ");
+      assert.ok(text.indexOf("Эта вкладка останавливается") !== -1, text);
+      assert.ok(text.indexOf("сервер") !== -1, "не сказано, что обновления забирает сервер");
     });
   });
 });

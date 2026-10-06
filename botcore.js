@@ -286,8 +286,81 @@ function handleUpdate(config, state, update) {
   return handleMessage(config, state, message, { updateId: update.update_id });
 }
 
+/* ---------------------------------------------------------------------------
+   6. ОДИН БОТ — ОДИН ПОТРЕБИТЕЛЬ ОБНОВЛЕНИЙ
+
+   Telegram отдаёт getUpdates только одному: если очередь уже держит кто-то
+   ещё (второй сервер, вкладка bot.html, GitHub Actions), приходит 409
+   Conflict. Правила общие для всех способов запуска, поэтому лежат здесь:
+
+     • постоянный процесс (server.js, node bot.js) не сдаётся, а отступает
+       с нарастающей паузой и забирает очередь, когда она освободится;
+     • разовый запуск (GitHub Actions) и браузерная панель уступают сразу:
+       обновления кто-то уже забирает, а спор только теряет заявки.
+   ------------------------------------------------------------------------ */
+
+var CONFLICT_BACKOFF_MS = [5000, 10000, 20000, 40000, 60000];
+var WEBHOOK_ERROR_STALE_SEC = 3600;   /* ошибка вебхука старше часа — уже не счёт */
+var POLL_FRESH_MS = 120000;           /* getUpdates отвечал недавно — опрос жив */
+var POLL_CONFLICT_FRESH_MS = 600000;  /* 409 недавно — очередь держит кто-то ещё */
+
+/* Пауза перед следующей попыткой, когда очередь getUpdates занята.
+   Разброс до 30 % — чтобы два процесса не стучались в Telegram в ногу. */
+function conflictBackoffMs(streak) {
+  var step = Math.max(1, streak | 0) - 1;
+  var index = Math.max(0, Math.min(CONFLICT_BACKOFF_MS.length - 1, step));
+  var base = CONFLICT_BACKOFF_MS[index];
+  return base + Math.floor(Math.random() * base * 0.3);
+}
+
+/* Живой ли вебхук по ответу getWebhookInfo. Живой вебхук — значит обновления
+   уже кто-то принимает, снимать его без спроса нельзя. */
+function webhookAlive(info, nowMs) {
+  var result = info && info.ok && info.result;
+  if (!result || !result.url) return false;
+  if (!result.last_error_date || !result.last_error_message) return true;
+  var age = ((nowMs || Date.now()) / 1000) - Number(result.last_error_date || 0);
+  return !(age >= 0 && age < WEBHOOK_ERROR_STALE_SEC);
+}
+
+/* Адрес проверки сервера: из явного SERVER_URL или из самого вебхука
+   (https://сервер/api/tg-webhook → https://сервер/api/health). */
+function serverHealthUrl(webhookUrl, serverUrl) {
+  var base = String(serverUrl || "").trim().replace(/\/+$/, "");
+  if (!base) {
+    var hook = String(webhookUrl || "").trim();
+    var at = hook.indexOf("/api/tg-webhook");
+    if (at === -1) return "";
+    base = hook.slice(0, at).replace(/\/+$/, "");
+  }
+  return /^https?:\/\//i.test(base) ? base + "/api/health" : "";
+}
+
+/* Принимает ли сервер обновления сам. Ответ на вопрос «мне можно брать
+   getUpdates или я начну спорить с уже работающим сервером?» */
+function serverTakesUpdates(health) {
+  if (!health || health.ok === false) return false;
+  var detail = health.updates_detail || {};
+  var mode = detail.mode || health.updates;
+  if (mode === "webhook") return true;
+  if (mode !== "poll") return false;
+  /* Опрос жив, если он недавно отвечал или недавно видел 409 (значит,
+     очередь держит кто-то ещё и заявки всё равно доходят). */
+  if (detail.alive === true) return true;
+  if (detail.alive === false) return false;
+  if (typeof detail.last_ok_age_ms === "number") return detail.last_ok_age_ms < POLL_FRESH_MS;
+  if (typeof detail.conflict_age_ms === "number") return detail.conflict_age_ms < POLL_CONFLICT_FRESH_MS;
+  return Boolean(health.poll);
+}
+
 var API = {
   MESSAGE_LIMIT: MESSAGE_LIMIT,
+  conflictBackoffMs: conflictBackoffMs,
+  webhookAlive: webhookAlive,
+  serverHealthUrl: serverHealthUrl,
+  serverTakesUpdates: serverTakesUpdates,
+  POLL_FRESH_MS: POLL_FRESH_MS,
+  POLL_CONFLICT_FRESH_MS: POLL_CONFLICT_FRESH_MS,
   runPlan: runPlan,
   clientDeliveryFailedText: clientDeliveryFailedText,
   newState: newState,
