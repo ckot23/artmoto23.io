@@ -1603,6 +1603,14 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
           <p class="note note--error" id="order-error" hidden></p>
 
+          <!-- Запасной путь без сервера: сайт лежит на статическом хостинге
+               (GitHub Pages), заявку отправляем прямо в Telegram готовым текстом. -->
+          <div class="order__actions" id="order-fallback" hidden>
+            <a class="btn btn--primary btn--wide" id="order-fallback-send"
+               href="https://t.me/ckot_23" target="_blank" rel="noopener">Отправить заявку в Telegram</a>
+            <button class="btn btn--ghost btn--wide" id="order-fallback-copy" type="button">Скопировать текст заявки</button>
+          </div>
+
           <div class="order__actions">
             <button class="btn btn--primary btn--wide" id="order-send" type="button">Отправить заказ</button>
             <button class="btn btn--ghost btn--wide" id="order-edit" type="button">Вернуться к конструктору</button>
@@ -1916,6 +1924,8 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     tabOrderBadge: $("tab-order-badge"),
     panelBuilder: $("panel-builder"), panelOrder: $("panel-order"),
     orderForm: $("order-form"), orderSend: $("order-send"), orderError: $("order-error"),
+    orderFallback: $("order-fallback"), orderFallbackSend: $("order-fallback-send"),
+    orderFallbackCopy: $("order-fallback-copy"),
     orderSummary: $("order-summary"), orderTotal: $("order-total"),
     orderSuccess: $("order-success"), orderSuccessId: $("order-success-id"),
     orderSuccessText: $("order-success-text"),
@@ -2855,8 +2865,78 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     el.orderError.hidden = !message;
     setText(el.orderError, message || "");
     orderErrorKind = message ? (kind || "field") : null;
+    /* Кнопки ручной отправки нужны только при ошибке связи. */
+    if (!message) el.orderFallback.hidden = true;
     if (message && kind !== "silent") toast(message, "error");
   }
+
+  /* --------------------------------------------------------------------------
+     ЗАПАСНОЙ ПУТЬ БЕЗ СЕРВЕРА
+     Сайт лежит на статическом хостинге (GitHub Pages) — Node-сервера рядом нет,
+     POST /api/order отвечает 404 страницей, а tg.sendData() работает только
+     внутри Telegram и только если где-то запущен сам бот. Тогда единственный
+     надёжный путь — открыть чат с менеджером с уже готовым текстом заявки.
+     ---------------------------------------------------------------------- */
+
+  var MANAGER_TG = "https://t.me/ckot_23";
+
+  /* Тот же текст, что сервер отправляет модератору, но простым текстом. */
+  function orderPlainText(payload) {
+    var film = byId(FILMS, payload.film);
+    var design = byId(DESIGNS, payload.design);
+    var color = byId(COLORS, payload.color);
+    var lines = ["Заявка с сайта", ""];
+    lines.push("Имя: " + payload.name);
+    lines.push("Контакт: " + payload.contact);
+    if (payload.delivery) lines.push("Получение: " + payload.delivery);
+    lines.push("");
+    lines.push("Материал: " + film.name);
+    lines.push("Дизайн: " + design.name);
+    lines.push("Цвет: " + color.name);
+    lines.push("Форма: " + (SHAPE_NAMES[payload.shape] || SHAPE_NAMES.rectangle));
+    lines.push("Размер: " + trimNum(payload.w) + " × " + trimNum(payload.h) + " см");
+    lines.push("Тираж: " + payload.qty + " шт");
+    lines.push("Итого на сайте: " + money(payload.client_total));
+    if (payload.comment) {
+      lines.push("");
+      lines.push("Комментарий: " + payload.comment);
+    }
+    return lines.join("\n");
+  }
+
+  function telegramOrderLink(payload) {
+    return MANAGER_TG + "?text=" + encodeURIComponent(orderPlainText(payload));
+  }
+
+  function showTelegramFallback(payload, message) {
+    showOrderError(message, "network");
+    el.orderFallbackSend.setAttribute("href", telegramOrderLink(payload));
+    el.orderFallback.hidden = false;
+  }
+
+  /* Внутри Telegram t.me-ссылку открываем штатным способом — иначе клиент
+     может не пустить внешний переход. */
+  el.orderFallbackSend.addEventListener("click", function (event) {
+    if (!insideTelegram() || !tg.openTelegramLink) return;
+    event.preventDefault();
+    try {
+      tg.openTelegramLink(el.orderFallbackSend.getAttribute("href"));
+    } catch (e) {
+      window.open(el.orderFallbackSend.getAttribute("href"), "_blank", "noopener");
+    }
+  });
+
+  el.orderFallbackCopy.addEventListener("click", function () {
+    var text = orderPlainText(orderPayload());
+    var button = this;
+    function done() {
+      setText(button, "Текст скопирован");
+      window.setTimeout(function () { setText(button, "Скопировать текст заявки"); }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else done();
+  });
 
   function fieldForError(error) {
     if (error.indexOf("Ширина") === 0) return el.width;
@@ -2983,7 +3063,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
            но менеджеру не ушла. Говорим об этом честно, а не «всё отправлено». */
         if (reply.data && reply.data.error) {
           if (sendViaMiniApp(payload)) return;
-          showOrderError(reply.data.error, "network");
+          showTelegramFallback(payload, reply.data.error);
           hapticNotify("error");
           return;
         }
@@ -2991,8 +3071,8 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
         /* Ответ не от нашего сервера: сайт открыт на статическом хостинге,
            а api-base не указан. Запасной путь — только внутри Telegram. */
         if (sendViaMiniApp(payload)) return;
-        showOrderError("Сервер заявок не отвечает (HTTP " + reply.status +
-          "). Напишите в Telegram @ckot_23 — оформим заказ вручную.", "network");
+        showTelegramFallback(payload, "Сервер заявок не отвечает (HTTP " + reply.status +
+          "). Отправьте заявку в Telegram — текст уже готов:");
         hapticNotify("error");
       })
       .catch(function () {
@@ -3000,7 +3080,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
         submitting = false;
         paintSubmit();
         if (sendViaMiniApp(payload)) return;
-        showOrderError("Нет связи с сервером. Попробуйте ещё раз или напишите в Telegram @ckot_23", "network");
+        showTelegramFallback(payload, "Нет связи с сервером заявок. Отправьте заявку в Telegram — текст уже готов:");
         hapticNotify("error");
       });
   }

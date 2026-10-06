@@ -263,6 +263,11 @@ function main() {
       var body = html.slice(html.indexOf("fetch(apiUrl(\"api/order\")"), html.indexOf("el.submit.addEventListener"));
       assert.ok(body.indexOf("reply.data.error") !== -1, "ошибка сервера игнорируется");
     });
+    check("при недоступном сервере есть отправка заявки в Telegram готовым текстом", function () {
+      assert.ok(html.indexOf("?text=") !== -1, "нет ссылки с текстом заявки");
+      assert.ok(html.indexOf("showTelegramFallback(payload") !== -1, "запасной путь не вызывается");
+      assert.ok(html.indexOf("function orderPlainText(payload)") !== -1, "нет текста заявки для ручной отправки");
+    });
     check("в .env.example нет настоящего токена бота", function () {
       var example = fs.readFileSync(path.join(ROOT, ".env.example"), "utf8");
       assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(example), "похоже на живой токен — его нужно отозвать");
