@@ -304,6 +304,7 @@ var MIME = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
+  ".avif": "image/avif",
   ".gif": "image/gif",
   ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8",

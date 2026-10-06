@@ -303,8 +303,9 @@ function main() {
       var deny = /var DENY_FILES = \[([^\]]+)\]/.exec(fs.readFileSync(path.join(ROOT, "server.js"), "utf8"));
       assert.ok(deny, "не нашёл список запрещённых файлов");
       var denied = deny[1];
-      ["pricing.js", "orderlink.js", "botcore.js", "botpanel.js", "bot.html", "admin.html", "adminlock.js"].forEach(function (file) {
-        assert.ok(denied.indexOf('"' + file + '"') === -1, file + " закрыт, а он нужен панели");
+      ["pricing.js", "orderlink.js", "botcore.js", "botpanel.js", "bot.html", "admin.html",
+        "adminlock.js", "templates.js", "templatesync.js", "templates/catalog.js"].forEach(function (file) {
+        assert.ok(denied.indexOf('"' + file.split("/").pop() + '"') === -1, file + " закрыт, а он нужен страницам");
       });
       ["server.js", "orders.jsonl", "env.js", "bot.js", "package.json"].forEach(function (file) {
         assert.ok(denied.indexOf('"' + file + '"') !== -1, file + " не закрыт от посетителей");
