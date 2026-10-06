@@ -7,9 +7,13 @@
 <meta name="color-scheme" content="dark light"/>
 <meta name="theme-color" content="#0E1012"/>
 <meta name="description" content="Наклейки любого размера на немецкой плёнке ORACAL — от 1 см до 5 м. Онлайн-расчёт цены, макет и заказ за 30 секунд."/>
-<!-- Адрес API приёма заказов. Пусто — тот же домен, что и сайт (api/order).
-     Если сайт лежит на GitHub Pages, а сервер заказов на другом домене,
-     укажите здесь полный адрес: <meta name="api-base" content="https://api.example.com"> -->
+<!-- Адрес API приёма заказов (сервер server.js).
+     Пусто — тот же домен, что и сайт (годится, если сервер отдаёт и страницу).
+     Сайт на GitHub Pages — впишите здесь полный адрес сервера, иначе заявка
+     уйдёт в никуда: у GitHub Pages нет /api/order. Пример:
+     <meta name="api-base" content="https://artmoto23-orders.onrender.com">
+     На сервере не забудьте ALLOW_ORIGIN=https://ваш-логин.github.io,
+     иначе браузер заблокирует запрос. -->
 <meta name="api-base" content=""/>
 <title>Наклейки на заказ — ORACAL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF6B2C'/%3E%3Cpath d='M20 34c0-8 6-14 14-14h10v10c0 8-6 14-14 14H20z' fill='%230E1012'/%3E%3C/svg%3E"/>
@@ -2842,6 +2846,23 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     var base = meta && meta.content ? meta.content.trim().replace(/\/+$/, "") : "";
     return base + "/" + String(endpoint).replace(/^\/+/, "");
   }
+
+  /* Если сайт открыт не сервером заявок, а api-base не заполнен, заявки будут
+     уходить «в свой же домен» и теряться. Предупреждаем владельца в консоли. */
+  (function warnAboutApiBase() {
+    var meta = document.querySelector('meta[name="api-base"]');
+    var configured = !!(meta && meta.content && meta.content.trim());
+    if (configured) return;
+    var host = location.hostname;
+    var sameOriginServer = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(host) ||
+      host.indexOf("onrender.com") !== -1 || host.indexOf("railway.app") !== -1 ||
+      host.indexOf("fly.dev") !== -1 || host.indexOf("herokuapp.com") !== -1;
+    if (sameOriginServer) return;
+    if (window.console && console.warn) {
+      console.warn("Заявки не уйдут: сайт открыт на " + host +
+        ", а <meta name=\"api-base\"> пустой. Укажите адрес сервера заявок в index.html.");
+    }
+  })();
 
   function orderPayload() {
     return {

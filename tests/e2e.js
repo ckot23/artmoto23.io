@@ -25,16 +25,22 @@ var ROOT = path.join(__dirname, "..");
 
 /* --- заглушка Telegram до загрузки сервера ------------------------------- */
 
-var calls = [];          // все вызовы Bot API
+var calls = [];          // вызовы Bot API с момента последней очистки
+var log = [];            // журнал всех вызовов — не очищается (для проверок старта)
 var reply = { ok: true, error_code: 0, description: "OK" };
 var pending = [];        // очередь обновлений для getUpdates
+var registeredWebhook = "";
 var realFetch = globalThis.fetch;
 
 globalThis.fetch = function (url, options) {
   var method = String(url).replace(/^.*\//, "");
-  calls.push({ method: method, body: JSON.parse((options && options.body) || "{}") });
+  var entry = { method: method, body: JSON.parse((options && options.body) || "{}") };
+  calls.push(entry);
+  log.push(entry);
   if (method === "getMe") return json(reply.badToken ? fail(401, "Unauthorized") : ok({ id: 1, username: "testbot" }));
-  if (method === "getWebhookInfo") return json(ok({ url: reply.webhookUrl || "" }));
+  if (method === "setWebhook") { registeredWebhook = entry.body.url || ""; return json(ok(true)); }
+  if (method === "deleteWebhook") { registeredWebhook = ""; return json(ok(true)); }
+  if (method === "getWebhookInfo") return json(ok({ url: registeredWebhook, pending_update_count: 0 }));
   if (method === "getUpdates") {
     var batch = pending.slice();
     pending = [];
@@ -61,7 +67,10 @@ process.env.MODERATOR_ID = "7114829971";
 process.env.DRY_RUN = "0";
 process.env.LOG_ORDERS = "0";
 process.env.WEBHOOK_SECRET = "test-secret";
-process.env.POLL = "1";
+/* Конфигурация как на хостинге: сервер сам ставит вебхук на своём адресе. */
+process.env.WEBHOOK_AUTO = "1";
+process.env.SERVER_URL = "https://test-orders.example.com";
+process.env.POLL = "auto";
 process.env.PORT = "0";
 
 var server = require(path.join(ROOT, "server.js"));
@@ -240,8 +249,14 @@ function main() {
         check("/api/health показывает, куда уходят заявки", function () {
           assert.strictEqual(health.ok, true);
           assert.strictEqual(health.dry_run, false);
-          assert.strictEqual(health.updates, "poll");
+          assert.strictEqual(health.updates, "webhook");
           assert.strictEqual(health.order_path, "телеграм модератору");
+        });
+        check("вебхук зарегистрирован автоматически на адресе сервера", function () {
+          var setWebhook = log.filter(function (c) { return c.method === "setWebhook"; })[0];
+          assert.ok(setWebhook, "setWebhook не вызывался");
+          assert.strictEqual(setWebhook.body.url, "https://test-orders.example.com/api/tg-webhook");
+          assert.strictEqual(setWebhook.body.secret_token, "test-secret");
         });
         check("ошибки Telegram расшифровываются", function () {
           assert.ok(server.telegramHint(401, "Unauthorized").indexOf("@BotFather") !== -1);
@@ -272,6 +287,19 @@ function main() {
       var example = fs.readFileSync(path.join(ROOT, ".env.example"), "utf8");
       assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(example), "похоже на живой токен — его нужно отозвать");
     });
+  });
+
+  /* 9. Проверка бота «по требованию» (то, что открывает владелец после деплоя). */
+  chain = chain.then(function () {
+    console.log("\n9. /api/tg-check");
+    return realFetch("http://127.0.0.1:" + port + "/api/tg-check").then(function (r) { return r.json(); })
+      .then(function (data) {
+        check("показывает живого бота и не раскрывает токен", function () {
+          assert.strictEqual(data.ok, true);
+          assert.strictEqual(data.bot, "@testbot");
+          assert.ok(JSON.stringify(data).indexOf("123456:TEST-TOKEN") === -1, "токен утёк в ответ!");
+        });
+      });
   });
 
   chain.then(function () {
