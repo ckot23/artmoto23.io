@@ -332,16 +332,13 @@ check("без токена понятно, что делать", function () {
 });
 
 console.log("\n6. Страницы и файлы");
-check("шаблоны и синхронизация отдаются страницам", function () {
-  var deny = /var DENY_FILES = \[([^\]]+)\]/.exec(fs.readFileSync(path.join(ROOT, "server.js"), "utf8"));
-  assert.ok(deny, "не нашёл список запрещённых файлов");
-  assert.strictEqual(deny[1].indexOf("templates.js"), -1, "templates.js закрыт от страниц");
-  assert.strictEqual(deny[1].indexOf("templatesync.js"), -1, "templatesync.js закрыт от страниц");
-});
-check("сервер знает типы картинок галереи", function () {
-  var server = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
-  assert.ok(server.indexOf('".webp": "image/webp"') !== -1, "webp не отдаётся");
-  assert.ok(server.indexOf('".avif"') !== -1, "avif не отдаётся");
+check("галерею подключают страницы, а не сервер", function () {
+  /* Сервера больше нет: сайт статический, поэтому скрипты галереи должны быть
+     подключены прямо в страницах — иначе на GitHub Pages галереи не будет. */
+  var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
+  assert.ok(index.indexOf('src="templates.js"') !== -1, "сайт не подключает templates.js");
+  assert.ok(admin.indexOf('src="templatesync.js"') !== -1, "админка не подключает templatesync.js");
 });
 check("файлы галереи существуют и подключаются на сайте", function () {
   assert.ok(fs.existsSync(path.join(ROOT, "templates", "catalog.js")), "нет файла каталога");
