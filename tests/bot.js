@@ -259,7 +259,7 @@ chain = chain.then(function () {
     check("клиент узнаёт, что заявка не прошла", function () {
       var reply = toClient(777008);
       assert.ok(reply, "клиенту ничего не ответили");
-      assert.ok(reply.text.indexOf("Не удалось принять заявку") !== -1, reply.text.slice(0, 120));
+      assert.ok(reply.text.indexOf("Не удалось передать заявку") !== -1, reply.text.slice(0, 120));
       assert.ok(reply.text.indexOf("t.me/ckot_23") !== -1, "нет запасного контакта");
     });
   });

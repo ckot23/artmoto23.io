@@ -184,7 +184,7 @@ function orderMessage(order, price, meta) {
   return lines.join("\n");
 }
 
-module.exports = {
+var API = {
   FILMS: FILMS,
   DESIGNS: DESIGNS,
   COLORS: COLORS,
@@ -204,3 +204,8 @@ module.exports = {
   orderMessage: orderMessage,
   money: money
 };
+
+/* Один и тот же код используют Node (server.js, bot.js) и браузер
+   (панель бота, bot.html) — поэтому прайс выдаётся и в модуль, и в globalThis. */
+if (typeof module !== "undefined" && module.exports) module.exports = API;
+if (typeof globalThis !== "undefined") globalThis.Pricing = API;

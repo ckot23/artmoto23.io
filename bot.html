@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta name="color-scheme" content="dark light"/>
+<meta name="robots" content="noindex"/>
+<title>Панель бота — Наклейки на заказ</title>
+<style>
+:root {
+  --bg: #0E1012; --surface: #16191C; --surface-2: #1D2125; --line: rgba(255,255,255,.09);
+  --text: #F4F5F6; --text-2: rgba(244,245,246,.70); --text-3: rgba(244,245,246,.5);
+  --accent: #FF6B2C; --ok: #3FCF8E; --danger: #FF6B6B; --warn: #F2C31B;
+  --radius: 16px; --radius-sm: 10px;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #F6F7F8; --surface: #FFFFFF; --surface-2: #EFF1F3; --line: rgba(0,0,0,.10);
+    --text: #14171A; --text-2: rgba(20,23,26,.72); --text-3: rgba(20,23,26,.5); }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 20px 16px 60px; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.wrap { max-width: 720px; margin: 0 auto; }
+h1 { font-size: 24px; margin: 0 0 6px; }
+h2 { font-size: 17px; margin: 26px 0 10px; }
+p { margin: 0 0 12px; color: var(--text-2); }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 14px 0; }
+label { display: block; margin: 0 0 12px; }
+.label { display: block; font-size: 13px; color: var(--text-2); margin-bottom: 6px; }
+input[type="text"], input[type="password"] {
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2);
+  border: 1.5px solid var(--line); color: var(--text); font-size: 15px; font-family: inherit;
+}
+input:focus { outline: none; border-color: var(--accent); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+button {
+  padding: 12px 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent; cursor: pointer;
+  font-size: 15px; font-weight: 600; font-family: inherit; background: var(--surface-2); color: var(--text);
+}
+button.primary { background: var(--accent); color: #1b0d04; }
+button.ghost { background: transparent; border-color: var(--line); }
+button:disabled { opacity: .5; cursor: default; }
+.hint { font-size: 13px; color: var(--text-3); margin: 8px 0 0; }
+.status { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-3); flex: 0 0 10px; }
+.dot.on { background: var(--ok); box-shadow: 0 0 0 4px rgba(63,207,142,.18); }
+.dot.err { background: var(--danger); }
+.counters { display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap; font-size: 14px; color: var(--text-2); }
+.counters b { color: var(--text); font-size: 16px; }
+.log {
+  background: #0B0D0F; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 12px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+@media (prefers-color-scheme: light) { .log { background: #F1F3F5; } }
+.log div { margin-bottom: 4px; }
+.log .ok { color: var(--ok); } .log .error { color: var(--danger); }
+.log .warn { color: var(--warn); } .log .order { color: var(--accent); font-weight: 600; }
+.log .info { color: var(--text-2); }
+.warnbox { border: 1px solid rgba(242,195,27,.35); background: rgba(242,195,27,.08); border-radius: var(--radius-sm); padding: 12px 14px; margin: 14px 0; }
+.warnbox p { color: var(--text); margin: 0; }
+.steps { padding-left: 20px; color: var(--text-2); }
+.steps li { margin-bottom: 6px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Панель бота</h1>
+  <p>Здесь бот принимает заявки без хостинга и без установки программ: пока эта
+     вкладка открыта, страница сама забирает заявки у Telegram и пересылает их модератору.</p>
+
+  <div class="warnbox">
+    <p><b>Токен останется только в этом браузере.</b> Он хранится в localStorage вашего устройства
+    и никогда не попадает в файлы сайта: всё, что лежит в репозитории, видят посетители.
+    Не открывайте эту страницу на чужом компьютере и не отправляйте токен в переписке.</p>
+  </div>
+
+  <section class="card">
+    <label>
+      <span class="label">Токен бота (@BotFather → /mybots → API Token)</span>
+      <input id="token" type="password" placeholder="1234567890:AAH…" autocomplete="off" spellcheck="false"/>
+    </label>
+    <label>
+      <span class="label">chat_id модератора — кому присылать заявки</span>
+      <input id="moderator" type="text" placeholder="7114829971" inputmode="numeric" autocomplete="off"/>
+    </label>
+    <label>
+      <span class="label">Адрес сайта (необязательно — попадёт в приветствие бота)</span>
+      <input id="publicUrl" type="text" placeholder="https://ваш-логин.github.io/artmoto23.io/" autocomplete="off"/>
+    </label>
+    <p class="hint">Свой chat_id можно узнать, написав боту <b>/id</b> (или @userinfobot).</p>
+    <div class="actions">
+      <button id="check" class="ghost" type="button">Проверить токен</button>
+      <button id="start" class="primary" type="button">Запустить приём заявок</button>
+      <button id="stop" class="ghost" type="button" disabled>Остановить</button>
+      <button id="forget" class="ghost" type="button">Забыть токен</button>
+    </div>
+    <p class="hint" id="check-result"></p>
+  </section>
+
+  <section class="card">
+    <div class="status"><span class="dot" id="dot"></span><span id="state-text">Бот не запущен</span></div>
+    <div class="counters">
+      <span>Заявок передано: <b id="orders">0</b></span>
+      <span>Обновлений: <b id="updates">0</b></span>
+      <span>Ошибок: <b id="errors">0</b></span>
+    </div>
+    <h2>Журнал</h2>
+    <div class="log" id="log"><div class="info">Пока ничего не происходило.</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Что нужно знать</h2>
+    <ul class="steps">
+      <li>Пока вкладка открыта — заявки приходят за секунды. Закрыли вкладку — Telegram хранит
+          недоставленные команды <b>до 24 часов</b>, и они придут, когда снова откроете эту страницу
+          (или когда запустится GitHub Actions, если он включён).</li>
+      <li>Вкладка должна оставаться открытой. На телефоне удобно закрепить её или открыть
+          страницу как мини-приложение Telegram: @BotFather → Bot Settings → Menu Button.</li>
+      <li>Не запускайте одновременно два приёмника: эту панель, GitHub Actions и <code>node bot.js</code> —
+          Telegram отдаёт обновления только одному, второй получит ошибку 409.</li>
+      <li>Ограничение Telegram: в ссылке заявки помещается 64 символа, поэтому комментарий
+          клиент дописывает боту сообщением — панель перешлёт его модератору.</li>
+    </ul>
+    <div class="actions">
+      <a id="site-link" href="index.html">← На сайт</a>
+    </div>
+  </section>
+</div>
+
+<script src="pricing.js"></script>
+<script src="orderlink.js"></script>
+<script src="botcore.js"></script>
+<script src="botpanel.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "stickers:bot:v1";
+  var el = {
+    token: document.getElementById("token"),
+    moderator: document.getElementById("moderator"),
+    publicUrl: document.getElementById("publicUrl"),
+    check: document.getElementById("check"),
+    start: document.getElementById("start"),
+    stop: document.getElementById("stop"),
+    forget: document.getElementById("forget"),
+    result: document.getElementById("check-result"),
+    dot: document.getElementById("dot"),
+    stateText: document.getElementById("state-text"),
+    orders: document.getElementById("orders"),
+    updates: document.getElementById("updates"),
+    errors: document.getElementById("errors"),
+    log: document.getElementById("log"),
+    site: document.getElementById("site-link")
+  };
+
+  var bot = null;
+  var logLines = 0;
+
+  /* Настройки держим только в этом браузере. В служебные файлы они не попадают. */
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function save(patch) {
+    var data = Object.assign(load(), patch);
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* приватный режим */ }
+  }
+
+  var saved = load();
+  el.token.value = saved.token || "";
+  el.moderator.value = saved.moderator || "";
+  el.publicUrl.value = saved.publicUrl || "";
+  el.site.setAttribute("href", saved.publicUrl || "index.html");
+
+  function log(message, kind) {
+    if (logLines === 0) el.log.textContent = "";
+    logLines++;
+    var line = document.createElement("div");
+    line.className = kind || "info";
+    var time = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    line.textContent = time + " · " + message;
+    el.log.appendChild(line);
+    el.log.scrollTop = el.log.scrollHeight;
+    while (el.log.childNodes.length > 300) el.log.removeChild(el.log.firstChild);
+  }
+
+  function paint(status) {
+    var stats = status.stats || { orders: 0, updates: 0, errors: 0 };
+    el.orders.textContent = stats.orders;
+    el.updates.textContent = stats.updates;
+    el.errors.textContent = stats.errors;
+    el.dot.className = "dot" + (status.running ? " on" : (stats.errors ? " err" : ""));
+    el.stateText.textContent = status.running ? "Бот работает — заявки уходят модератору" : "Бот не запущен";
+    el.start.disabled = status.running;
+    el.stop.disabled = !status.running;
+  }
+
+  function build() {
+    if (bot) bot.stop();
+    bot = BotPanel.createBot({
+      token: el.token.value.trim(),
+      moderatorId: el.moderator.value.trim(),
+      publicUrl: el.publicUrl.value.trim(),
+      log: log,
+      onStatus: paint
+    });
+    return bot;
+  }
+
+  el.check.addEventListener("click", function () {
+    el.result.textContent = "Проверяю…";
+    save({ token: el.token.value.trim(), moderator: el.moderator.value.trim(), publicUrl: el.publicUrl.value.trim() });
+    build().check().then(function (info) {
+      el.result.textContent = "✅ Токен рабочий: @" + info.username + " (id " + info.id + ")";
+      log("Токен проверен: @" + info.username, "ok");
+    }).catch(function (error) {
+      el.result.textContent = "⚠️ " + error.message;
+      log("Проверка токена: " + error.message, "error");
+    });
+  });
+
+  el.start.addEventListener("click", function () {
+    var token = el.token.value.trim();
+    var moderator = el.moderator.value.trim();
+    if (!token || !moderator) {
+      el.result.textContent = "⚠️ Заполните токен и chat_id модератора";
+      return;
+    }
+    save({ token: token, moderator: moderator, publicUrl: el.publicUrl.value.trim() });
+    if (saved.publicUrl !== el.publicUrl.value.trim()) el.site.setAttribute("href", el.publicUrl.value.trim() || "index.html");
+    build();
+    el.result.textContent = "";
+    bot.check().then(function (info) {
+      log("Бот @" + info.username + " — токен рабочий", "ok");
+      return bot.start();
+    }).catch(function (error) {
+      log("Не запускаю бота: " + error.message, "error");
+      el.result.textContent = "⚠️ " + error.message;
+    });
+  });
+
+  el.stop.addEventListener("click", function () {
+    if (bot) bot.stop();
+    log("Приём заявок остановлен вручную", "warn");
+  });
+
+  el.forget.addEventListener("click", function () {
+    if (bot) bot.stop();
+    try { localStorage.removeItem(KEY); } catch (e) { /* ok */ }
+    el.token.value = "";
+    el.moderator.value = "";
+    el.publicUrl.value = "";
+    el.result.textContent = "Данные удалены из этого браузера";
+    log("Токен удалён из этого браузера", "warn");
+  });
+
+  paint({ running: false, stats: { orders: 0, updates: 0, errors: 0 } });
+
+  window.addEventListener("beforeunload", function (event) {
+    if (bot && bot.status.running) {
+      event.preventDefault();
+      event.returnValue = "Бот остановится, если закрыть вкладку. Заявки придут, когда откроете панель снова.";
+      return event.returnValue;
+    }
+    return null;
+  });
+
+  /* Заходили раньше? Подскажем, что можно просто нажать «Запустить». */
+  if (saved.token && saved.moderator) {
+    log("Настройки найдены в этом браузере — нажмите «Запустить приём заявок»", "info");
+  } else {
+    log("Вставьте токен бота и chat_id модератора, затем нажмите «Запустить приём заявок»", "info");
+  }
+})();
+</script>
+</body>
+</html>

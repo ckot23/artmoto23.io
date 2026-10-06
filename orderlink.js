@@ -47,15 +47,40 @@ var IDS = {
   shape: flip(CODES.shape)
 };
 
+/* Кодек работает и в Node (Buffer), и в браузере (TextEncoder/btoa) —
+   панель бота считает заявки тем же кодом, что и сервер. */
+var HAS_BUFFER = typeof Buffer !== "undefined" && typeof Buffer.from === "function";
+var HAS_BTOA = typeof btoa === "function";
+
+function utf8bytes(text) {
+  if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(text);
+  return Uint8Array.from(Buffer.from(text, "utf8"));
+}
+
+function byteLength(text) {
+  return HAS_BUFFER ? Buffer.byteLength(text, "utf8") : utf8bytes(text).length;
+}
+
 function base64url(text) {
-  return Buffer.from(text, "utf8").toString("base64")
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  var out;
+  if (HAS_BUFFER) out = Buffer.from(text, "utf8").toString("base64");
+  else {
+    var bytes = utf8bytes(text);
+    var binary = "";
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    out = btoa(binary);
+  }
+  return out.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function fromBase64url(value) {
   var text = String(value).replace(/-/g, "+").replace(/_/g, "/");
   while (text.length % 4) text += "=";
-  return Buffer.from(text, "base64").toString("utf8");
+  if (HAS_BUFFER) return Buffer.from(text, "base64").toString("utf8");
+  var binary = atob(text);
+  var bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
 }
 
 function num(value) {
@@ -79,7 +104,7 @@ function short(value, maxBytes) {
   var out = "";
   for (var i = 0; i < text.length; i++) {
     var next = out + text.charAt(i);
-    if (Buffer.byteLength(next, "utf8") > maxBytes) break;
+    if (byteLength(next) > maxBytes) break;
     out = next;
   }
   return out;
@@ -96,24 +121,24 @@ function pack(order) {
     num(order.w), num(order.h), num(order.qty)
   ];
   var headText = head.join(SEP);
-  var budget = RAW_LIMIT - Buffer.byteLength(headText + SEP, "utf8");
+  var budget = RAW_LIMIT - byteLength(headText + SEP);
   var tail = [clean(order.name), clean(order.delivery), clean(order.comment)];
 
   var parts = head.slice();
   for (var i = 0; i < tail.length && budget > 0; i++) {
     if (!tail[i]) { parts.push(""); budget -= 1; continue; }   /* позиция сохраняется */
     var room = budget - 1;
-    var fits = Buffer.byteLength(tail[i], "utf8") <= room;
+    var fits = byteLength(tail[i]) <= room;
     var piece = fits ? tail[i] : short(tail[i], room);
     /* Обрывок из пары букв бесполезен: лучше не включать поле совсем. */
-    if (!piece || (!fits && Buffer.byteLength(piece, "utf8") < 8)) break;
+    if (!piece || (!fits && byteLength(piece) < 8)) break;
     parts.push(piece);
-    budget -= 1 + Buffer.byteLength(piece, "utf8");
+    budget -= 1 + byteLength(piece);
   }
   while (parts.length > 8 && parts[parts.length - 1] === "") parts.pop();
 
   var text = parts.join(SEP);
-  if (Buffer.byteLength(text, "utf8") > RAW_LIMIT) {          /* страховка */
+  if (byteLength(text) > RAW_LIMIT) {          /* страховка */
     text = short(text, RAW_LIMIT);
   }
   return base64url(text);
@@ -165,7 +190,7 @@ function botLink(botUsername, order) {
   return "https://t.me/" + String(botUsername).replace(/^@/, "") + "?start=" + startParam(order);
 }
 
-module.exports = {
+var API = {
   VERSION: VERSION,
   START_LIMIT: START_LIMIT,
   RAW_LIMIT: RAW_LIMIT,
@@ -179,3 +204,6 @@ module.exports = {
   base64url: base64url,
   fromBase64url: fromBase64url
 };
+
+if (typeof module !== "undefined" && module.exports) module.exports = API;
+if (typeof globalThis !== "undefined") globalThis.OrderLink = API;

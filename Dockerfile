@@ -7,7 +7,7 @@ WORKDIR /app
 
 # package.json без зависимостей: npm install не нужен, образ собирается мгновенно.
 COPY package.json ./
-COPY server.js pricing.js index.html ./
+COPY server.js pricing.js index.html bot.html botpanel.js botcore.js orderlink.js env.js ./
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
