@@ -263,20 +263,25 @@ chain = chain.then(function () {
   });
 });
 
-/* 8. Токен — только из полей панели, в файлах его нет. */
+/* 8. Токен — только из полей админки, в файлах его нет. */
 chain = chain.then(function () {
   console.log("\n8. Токен не попадает в файлы");
   var html = fs.readFileSync(path.join(ROOT, "bot.html"), "utf8");
-  var panel = fs.readFileSync(path.join(ROOT, "botpanel.js"), "utf8");
+  var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
   var workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/bot.yml"), "utf8");
 
-  check("панель берёт токен из поля ввода и localStorage", function () {
-    assert.ok(html.indexOf('id="token" type="password"') !== -1, "нет защищённого поля токена");
-    assert.ok(html.indexOf("localStorage") !== -1, "настройки не сохраняются в браузере");
-    assert.ok(html.indexOf("Забыть токен") !== -1, "нет кнопки удаления токена");
+  check("токен вводится в меню админа и там же шифруется", function () {
+    assert.ok(admin.indexOf('id="s-token" type="password"') !== -1, "нет защищённого поля токена");
+    assert.ok(admin.indexOf("vault.save") !== -1, "настройки не сохраняются через замок");
+    assert.ok(admin.indexOf("Сбросить доступ") !== -1, "нет способа удалить настройки");
+  });
+  check("панель берёт токен из разблокированной сессии", function () {
+    assert.ok(html.indexOf("vault.session()") !== -1, "панель не читает сессию");
+    assert.ok(html.indexOf("AdminLock.createVault") !== -1, "панель не использует замок");
   });
   check("ни в одном файле нет токена бота", function () {
-    var files = ["bot.html", "botpanel.js", "botcore.js", "bot.js", "index.html", "orderlink.js", "pricing.js", "env.js"];
+    var files = ["bot.html", "admin.html", "botpanel.js", "botcore.js", "bot.js",
+      "adminlock.js", "index.html", "orderlink.js", "pricing.js", "env.js"];
     var found = files.filter(function (name) {
       var text = fs.readFileSync(path.join(ROOT, name), "utf8");
       return /\d{8,}:[A-Za-z0-9_-]{30,}/.test(text);
@@ -287,13 +292,16 @@ chain = chain.then(function () {
     assert.ok(workflow.indexOf("secrets.BOT_TOKEN") !== -1);
     assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(workflow));
   });
-  check("предупреждение о безопасности есть на странице", function () {
-    assert.ok(html.indexOf("Токен останется только в этом браузере") !== -1);
+  check("на страницах написано, где лежит токен", function () {
+    assert.ok(html.indexOf("Токен лежит в этом браузере зашифрованным паролем") !== -1);
+    assert.ok(admin.indexOf("Токен зашифрован") !== -1);
   });
-  check("сайт ссылается на панель, а панель — на сайт", function () {
+  check("сайт ведёт в меню админа, а меню — в панель и обратно", function () {
     var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-    assert.ok(index.indexOf("bot.html") !== -1, "на сайте нет ссылки на панель");
-    assert.ok(html.indexOf('id="site-link"') !== -1, "в панели нет ссылки на сайт");
+    assert.ok(index.indexOf("admin.html") !== -1, "на сайте нет ссылки на меню админа");
+    assert.ok(admin.indexOf('href="bot.html"') !== -1, "в меню нет перехода в панель");
+    assert.ok(admin.indexOf('href="index.html"') !== -1, "в меню нет возврата на сайт");
+    assert.ok(html.indexOf('href="admin.html"') !== -1, "в панели нет перехода в меню");
   });
 });
 

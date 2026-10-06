@@ -35,7 +35,6 @@ input[type="text"], input[type="password"] {
   border: 1.5px solid var(--line); color: var(--text); font-size: 15px; font-family: inherit;
 }
 input:focus { outline: none; border-color: var(--accent); }
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
 button {
   padding: 12px 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent; cursor: pointer;
   font-size: 15px; font-weight: 600; font-family: inherit; background: var(--surface-2); color: var(--text);
@@ -65,73 +64,89 @@ button:disabled { opacity: .5; cursor: default; }
 .steps { padding-left: 20px; color: var(--text-2); }
 .steps li { margin-bottom: 6px; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.hidden { display: none !important; }
+.error { color: var(--danger); font-weight: 600; font-size: 14px; min-height: 20px; margin: 10px 0 0; }
+.lockicon { font-size: 38px; line-height: 1; margin-bottom: 6px; }
+.kv { list-style: none; padding: 0; margin: 0; }
+.kv li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.kv li:last-child { border-bottom: none; }
+.kv span:first-child { color: var(--text-2); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Панель бота</h1>
-  <p>Здесь бот принимает заявки без хостинга и без установки программ: пока эта
-     вкладка открыта, страница сама забирает заявки у Telegram и пересылает их модератору.</p>
 
-  <div class="warnbox">
-    <p><b>Токен останется только в этом браузере.</b> Он хранится в localStorage вашего устройства
-    и никогда не попадает в файлы сайта: всё, что лежит в репозитории, видят посетители.
-    Не открывайте эту страницу на чужом компьютере и не отправляйте токен в переписке.</p>
-  </div>
-
-  <section class="card">
-    <label>
-      <span class="label">Токен бота (@BotFather → /mybots → API Token)</span>
-      <input id="token" type="password" placeholder="1234567890:AAH…" autocomplete="off" spellcheck="false"/>
-    </label>
-    <label>
-      <span class="label">chat_id модератора — кому присылать заявки</span>
-      <input id="moderator" type="text" placeholder="7114829971" inputmode="numeric" autocomplete="off"/>
-    </label>
-    <label>
-      <span class="label">Адрес сайта (необязательно — попадёт в приветствие бота)</span>
-      <input id="publicUrl" type="text" placeholder="https://ваш-логин.github.io/artmoto23.io/" autocomplete="off"/>
-    </label>
-    <p class="hint">Свой chat_id можно узнать, написав боту <b>/id</b> (или @userinfobot).</p>
-    <div class="actions">
-      <button id="check" class="ghost" type="button">Проверить токен</button>
-      <button id="start" class="primary" type="button">Запустить приём заявок</button>
-      <button id="stop" class="ghost" type="button" disabled>Остановить</button>
-      <button id="forget" class="ghost" type="button">Забыть токен</button>
-    </div>
-    <p class="hint" id="check-result"></p>
-  </section>
-
-  <section class="card">
-    <div class="status"><span class="dot" id="dot"></span><span id="state-text">Бот не запущен</span></div>
-    <div class="counters">
-      <span>Заявок передано: <b id="orders">0</b></span>
-      <span>Обновлений: <b id="updates">0</b></span>
-      <span>Ошибок: <b id="errors">0</b></span>
-    </div>
-    <h2>Журнал</h2>
-    <div class="log" id="log"><div class="info">Пока ничего не происходило.</div></div>
-  </section>
-
-  <section class="card">
-    <h2>Что нужно знать</h2>
-    <ul class="steps">
-      <li>Пока вкладка открыта — заявки приходят за секунды. Закрыли вкладку — Telegram хранит
-          недоставленные команды <b>до 24 часов</b>, и они придут, когда снова откроете эту страницу
-          (или когда запустится GitHub Actions, если он включён).</li>
-      <li>Вкладка должна оставаться открытой. На телефоне удобно закрепить её или открыть
-          страницу как мини-приложение Telegram: @BotFather → Bot Settings → Menu Button.</li>
-      <li>Не запускайте одновременно два приёмника: эту панель, GitHub Actions и <code>node bot.js</code> —
-          Telegram отдаёт обновления только одному, второй получит ошибку 409.</li>
-      <li>Ограничение Telegram: в ссылке заявки помещается 64 символа, поэтому комментарий
-          клиент дописывает боту сообщением — панель перешлёт его модератору.</li>
-    </ul>
-    <div class="actions">
-      <a id="site-link" href="index.html">← На сайт</a>
+  <!-- ВХОД: тот же пароль, что в меню админа -->
+  <section id="lock">
+    <div class="card">
+      <div class="lockicon" aria-hidden="true">🔒</div>
+      <h1>Панель бота</h1>
+      <p id="lock-lead">Введите пароль админа — из него берётся ключ к настройкам бота.</p>
+      <label id="password-block">
+        <span class="label">Пароль</span>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••"/>
+      </label>
+      <div class="actions">
+        <button id="unlock" class="primary" type="button">Войти</button>
+        <a href="admin.html" style="align-self:center">Меню админа →</a>
+      </div>
+      <p class="error" id="lock-error"></p>
+      <p class="hint" id="lock-hint">Пароля ещё нет? Задайте его в <a href="admin.html">меню админа</a> вместе с токеном бота.</p>
     </div>
   </section>
+
+  <!-- ПАНЕЛЬ -->
+  <section id="panel" class="hidden">
+    <h1>Панель бота</h1>
+    <p>Пока эта вкладка открыта, страница сама забирает заявки у Telegram и пересылает их модератору.
+       Никакого хостинга не нужно.</p>
+
+    <div class="warnbox">
+      <p><b>Токен лежит в этом браузере зашифрованным паролем</b> и никуда не уходит, кроме
+      api.telegram.org. В файлах сайта ни пароля, ни токена нет — их нельзя подсмотреть
+      на GitHub или через исходный код страницы.</p>
+    </div>
+
+    <section class="card">
+      <ul class="kv" id="summary"></ul>
+      <div class="actions">
+        <button id="start" class="primary" type="button">Запустить приём заявок</button>
+        <button id="stop" class="ghost" type="button" disabled>Остановить</button>
+        <a href="admin.html" style="align-self:center">Меню админа</a>
+        <a href="index.html" style="align-self:center">На сайт</a>
+      </div>
+      <p class="hint" id="setup-hint"></p>
+    </section>
+
+    <section class="card">
+      <div class="status"><span class="dot" id="dot"></span><span id="state-text">Бот не запущен</span></div>
+      <div class="counters">
+        <span>Заявок передано: <b id="orders">0</b></span>
+        <span>Обновлений: <b id="updates">0</b></span>
+        <span>Ошибок: <b id="errors">0</b></span>
+      </div>
+      <h2>Журнал</h2>
+      <div class="log" id="log"><div class="info">Пока ничего не происходило.</div></div>
+      <p class="hint">Из этого журнала видно, что каждая заявка ушла модератору, а если что-то
+        не получилось — что именно и что с этим делать.</p>
+    </section>
+
+    <section class="card">
+      <h2>Что нужно знать</h2>
+      <ul class="steps">
+        <li>Пока вкладка открыта — заявки приходят за секунды. Закрыли вкладку — Telegram хранит
+            недоставленные команды <b>до 24 часов</b>, и они придут, когда откроете панель снова.</li>
+        <li>Не запускайте одновременно два приёмника: эту панель, GitHub Actions и <code>node bot.js</code> —
+            Telegram отдаёт обновления только одному, второй получит ошибку 409.</li>
+        <li>В ссылке заявки Telegram разрешает 64 символа, поэтому комментарий клиент дописывает
+            боту сообщением — панель перешлёт его модератору.</li>
+      </ul>
+    </section>
+  </section>
+
 </div>
 
+<script src="adminlock.js"></script>
 <script src="pricing.js"></script>
 <script src="orderlink.js"></script>
 <script src="botcore.js"></script>
@@ -140,42 +155,30 @@ button:disabled { opacity: .5; cursor: default; }
 (function () {
   "use strict";
 
-  var KEY = "stickers:bot:v1";
+  var vault = AdminLock.createVault({});
   var el = {
-    token: document.getElementById("token"),
-    moderator: document.getElementById("moderator"),
-    publicUrl: document.getElementById("publicUrl"),
-    check: document.getElementById("check"),
+    lock: document.getElementById("lock"),
+    lockLead: document.getElementById("lock-lead"),
+    lockError: document.getElementById("lock-error"),
+    lockHint: document.getElementById("lock-hint"),
+    password: document.getElementById("password"),
+    unlock: document.getElementById("unlock"),
+    panel: document.getElementById("panel"),
+    summary: document.getElementById("summary"),
     start: document.getElementById("start"),
     stop: document.getElementById("stop"),
-    forget: document.getElementById("forget"),
-    result: document.getElementById("check-result"),
     dot: document.getElementById("dot"),
     stateText: document.getElementById("state-text"),
     orders: document.getElementById("orders"),
     updates: document.getElementById("updates"),
     errors: document.getElementById("errors"),
     log: document.getElementById("log"),
-    site: document.getElementById("site-link")
+    setupHint: document.getElementById("setup-hint")
   };
 
   var bot = null;
+  var settings = { token: "", moderator: "", publicUrl: "" };
   var logLines = 0;
-
-  /* Настройки держим только в этом браузере. В служебные файлы они не попадают. */
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { return {}; }
-  }
-  function save(patch) {
-    var data = Object.assign(load(), patch);
-    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* приватный режим */ }
-  }
-
-  var saved = load();
-  el.token.value = saved.token || "";
-  el.moderator.value = saved.moderator || "";
-  el.publicUrl.value = saved.publicUrl || "";
-  el.site.setAttribute("href", saved.publicUrl || "index.html");
 
   function log(message, kind) {
     if (logLines === 0) el.log.textContent = "";
@@ -196,51 +199,85 @@ button:disabled { opacity: .5; cursor: default; }
     el.errors.textContent = stats.errors;
     el.dot.className = "dot" + (status.running ? " on" : (stats.errors ? " err" : ""));
     el.stateText.textContent = status.running ? "Бот работает — заявки уходят модератору" : "Бот не запущен";
-    el.start.disabled = status.running;
+    el.start.disabled = status.running || !settings.token;
     el.stop.disabled = !status.running;
   }
 
-  function build() {
-    if (bot) bot.stop();
-    bot = BotPanel.createBot({
-      token: el.token.value.trim(),
-      moderatorId: el.moderator.value.trim(),
-      publicUrl: el.publicUrl.value.trim(),
-      log: log,
-      onStatus: paint
-    });
-    return bot;
+  function mask(value) {
+    if (!value) return "не задан";
+    var tail = value.slice(-4);
+    return "•".repeat(Math.max(6, value.length - tail.length - 4)) + "…" + tail;
   }
 
-  el.check.addEventListener("click", function () {
-    el.result.textContent = "Проверяю…";
-    save({ token: el.token.value.trim(), moderator: el.moderator.value.trim(), publicUrl: el.publicUrl.value.trim() });
-    build().check().then(function (info) {
-      el.result.textContent = "✅ Токен рабочий: @" + info.username + " (id " + info.id + ")";
-      log("Токен проверен: @" + info.username, "ok");
-    }).catch(function (error) {
-      el.result.textContent = "⚠️ " + error.message;
-      log("Проверка токена: " + error.message, "error");
+  function openPanel() {
+    el.lock.classList.add("hidden");
+    el.panel.classList.remove("hidden");
+    el.summary.textContent = "";
+    [
+      ["Бот", settings.token ? "настроен" : "не настроен"],
+      ["Токен", mask(settings.token)],
+      ["chat_id модератора", settings.moderator || "не задан"]
+    ].forEach(function (row) {
+      var li = document.createElement("li");
+      var left = document.createElement("span");
+      var right = document.createElement("span");
+      left.textContent = row[0];
+      right.textContent = row[1];
+      li.appendChild(left);
+      li.appendChild(right);
+      el.summary.appendChild(li);
     });
+    if (!settings.token) {
+      el.setupHint.innerHTML = 'Токен бота ещё не задан — заполните его в <a href="admin.html">меню админа</a>.';
+      log("Токен не задан: откройте меню админа и впишите токен бота", "warn");
+    } else {
+      el.setupHint.textContent = "Настройки берутся из меню админа и хранятся зашифрованными.";
+      log("Настройки расшифрованы — можно запускать приём заявок", "info");
+    }
+    paint({ running: false, stats: { orders: 0, updates: 0, errors: 0 } });
+  }
+
+  function tryOpenFromSession() {
+    if (!vault.hasSession()) return false;
+    settings = vault.session() || settings;
+    openPanel();
+    return true;
+  }
+
+  el.unlock.addEventListener("click", function () {
+    el.lockError.textContent = "";
+    var password = el.password.value;
+    if (!password) { el.lockError.textContent = "Введите пароль"; return; }
+    if (!vault.hasPassword()) {
+      el.lockError.textContent = "Пароль ещё не задан — откройте меню админа";
+      return;
+    }
+    vault.unlock(password).then(function (opened) {
+      el.password.value = "";
+      settings = opened.settings || {};
+      openPanel();
+    }).catch(function (error) {
+      el.lockError.textContent = "⚠️ " + error.message;
+    });
+  });
+  el.password.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") { event.preventDefault(); el.unlock.click(); }
   });
 
   el.start.addEventListener("click", function () {
-    var token = el.token.value.trim();
-    var moderator = el.moderator.value.trim();
-    if (!token || !moderator) {
-      el.result.textContent = "⚠️ Заполните токен и chat_id модератора";
-      return;
-    }
-    save({ token: token, moderator: moderator, publicUrl: el.publicUrl.value.trim() });
-    if (saved.publicUrl !== el.publicUrl.value.trim()) el.site.setAttribute("href", el.publicUrl.value.trim() || "index.html");
-    build();
-    el.result.textContent = "";
+    if (!settings.token) return;
+    bot = BotPanel.createBot({
+      token: settings.token,
+      moderatorId: settings.moderator,
+      publicUrl: settings.publicUrl,
+      log: log,
+      onStatus: paint
+    });
     bot.check().then(function (info) {
       log("Бот @" + info.username + " — токен рабочий", "ok");
       return bot.start();
     }).catch(function (error) {
       log("Не запускаю бота: " + error.message, "error");
-      el.result.textContent = "⚠️ " + error.message;
     });
   });
 
@@ -248,18 +285,6 @@ button:disabled { opacity: .5; cursor: default; }
     if (bot) bot.stop();
     log("Приём заявок остановлен вручную", "warn");
   });
-
-  el.forget.addEventListener("click", function () {
-    if (bot) bot.stop();
-    try { localStorage.removeItem(KEY); } catch (e) { /* ok */ }
-    el.token.value = "";
-    el.moderator.value = "";
-    el.publicUrl.value = "";
-    el.result.textContent = "Данные удалены из этого браузера";
-    log("Токен удалён из этого браузера", "warn");
-  });
-
-  paint({ running: false, stats: { orders: 0, updates: 0, errors: 0 } });
 
   window.addEventListener("beforeunload", function (event) {
     if (bot && bot.status.running) {
@@ -270,11 +295,22 @@ button:disabled { opacity: .5; cursor: default; }
     return null;
   });
 
-  /* Заходили раньше? Подскажем, что можно просто нажать «Запустить». */
-  if (saved.token && saved.moderator) {
-    log("Настройки найдены в этом браузере — нажмите «Запустить приём заявок»", "info");
-  } else {
-    log("Вставьте токен бота и chat_id модератора, затем нажмите «Запустить приём заявок»", "info");
+  if (!AdminLock.isAvailable()) {
+    el.lockLead.textContent = AdminLock.UNAVAILABLE;
+    el.password.parentNode.classList.add("hidden");
+    el.unlock.classList.add("hidden");
+    el.lockHint.textContent = "";
+    return;
+  }
+
+  if (!vault.hasPassword()) {
+    el.password.parentNode.classList.add("hidden");
+    el.unlock.classList.add("hidden");
+    el.lockLead.textContent = "Пароль админа ещё не задан.";
+    el.lockHint.innerHTML = 'Сначала задайте пароль и токен бота в <a href="admin.html">меню админа</a>.';
+  } else if (!tryOpenFromSession()) {
+    el.password.focus();
+    logLines = 1;
   }
 })();
 </script>

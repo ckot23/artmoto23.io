@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta name="color-scheme" content="dark light"/>
+<meta name="robots" content="noindex"/>
+<title>Меню админа — Наклейки на заказ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF6B2C'/%3E%3Cpath d='M22 30v-5a10 10 0 0 1 20 0v5h-4v-5a6 6 0 0 0-12 0v5z' fill='%230E1012'/%3E%3Crect x='18' y='30' width='28' height='20' rx='4' fill='%230E1012'/%3E%3C/svg%3E"/>
+<style>
+:root {
+  --bg: #0E1012; --surface: #16191C; --surface-2: #1D2125; --line: rgba(255,255,255,.09);
+  --text: #F4F5F6; --text-2: rgba(244,245,246,.70); --text-3: rgba(244,245,246,.5);
+  --accent: #FF6B2C; --ok: #3FCF8E; --danger: #FF6B6B; --warn: #F2C31B;
+  --radius: 16px; --radius-sm: 10px;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #F6F7F8; --surface: #FFFFFF; --surface-2: #EFF1F3; --line: rgba(0,0,0,.10);
+    --text: #14171A; --text-2: rgba(20,23,26,.72); --text-3: rgba(20,23,26,.5); }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 20px 16px 60px; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.wrap { max-width: 680px; margin: 0 auto; }
+h1 { font-size: 24px; margin: 0 0 6px; }
+h2 { font-size: 17px; margin: 22px 0 10px; }
+p { margin: 0 0 12px; color: var(--text-2); }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 14px 0; }
+label { display: block; margin: 0 0 12px; }
+.label { display: block; font-size: 13px; color: var(--text-2); margin-bottom: 6px; }
+input[type="text"], input[type="password"] {
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2);
+  border: 1.5px solid var(--line); color: var(--text); font-size: 15px; font-family: inherit;
+}
+input:focus { outline: none; border-color: var(--accent); }
+button { padding: 12px 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent; cursor: pointer;
+  font-size: 15px; font-weight: 600; font-family: inherit; background: var(--surface-2); color: var(--text); }
+button.primary { background: var(--accent); color: #1b0d04; }
+button.ghost { background: transparent; border-color: var(--line); }
+button.danger { background: transparent; border-color: rgba(255,107,107,.4); color: var(--danger); }
+button:disabled { opacity: .5; cursor: default; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.hint { font-size: 13px; color: var(--text-3); margin: 8px 0 0; }
+.error { color: var(--danger); font-weight: 600; font-size: 14px; min-height: 20px; margin: 10px 0 0; }
+.ok { color: var(--ok); font-weight: 600; font-size: 14px; }
+.menu { display: grid; gap: 10px; }
+.tile { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1.5px solid var(--line); text-decoration: none; color: inherit; }
+.tile:hover { border-color: var(--accent); }
+.tile--primary { background: var(--accent); color: #1b0d04; border-color: transparent; }
+.tile--primary .tile__text, .tile--primary .tile__title { color: rgba(27,13,4,.8); }
+.tile--primary .tile__title { color: #1b0d04; }
+.tile__icon { font-size: 22px; line-height: 1.2; }
+.tile__title { font-weight: 700; margin-bottom: 2px; }
+.tile__text { font-size: 13px; color: var(--text-2); }
+.hidden { display: none !important; }
+.lockicon { font-size: 40px; line-height: 1; margin-bottom: 6px; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: rgba(63,207,142,.14); color: var(--ok); margin-left: 8px; }
+.badge--off { background: var(--surface-2); color: var(--text-3); }
+.kv { list-style: none; padding: 0; margin: 0; }
+.kv li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.kv li:last-child { border-bottom: none; }
+.kv span:first-child { color: var(--text-2); }
+code { background: var(--surface-2); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ЭКРАН ВХОДА -->
+  <section id="lock">
+    <div class="card">
+      <div class="lockicon" aria-hidden="true">🔒</div>
+      <h1 id="lock-title">Меню админа</h1>
+      <p id="lock-lead">Введите пароль, чтобы открыть настройки приёма заявок.</p>
+
+      <div id="setup-block" class="hidden">
+        <p>Пароль ещё не задан — придумайте его сейчас. Пароль хранится только в этом браузере
+           (в виде отпечатка, без самого пароля) и им же шифруется токен бота.</p>
+        <label>
+          <span class="label">Новый пароль (минимум 6 символов)</span>
+          <input id="new-password" type="password" autocomplete="new-password" placeholder="••••••"/>
+        </label>
+        <label>
+          <span class="label">Повторите пароль</span>
+          <input id="new-password2" type="password" autocomplete="new-password" placeholder="••••••"/>
+        </label>
+      </div>
+
+      <div id="unlock-block" class="hidden">
+        <label>
+          <span class="label">Пароль</span>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••"/>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="lock-submit" class="primary" type="button">Войти</button>
+        <a class="tile__text" href="index.html" style="align-self:center">← На сайт</a>
+      </div>
+      <p class="error" id="lock-error"></p>
+      <p class="hint">Забыли пароль? Нажмите «Сбросить доступ» — настройки будут удалены из браузера,
+        и токен нужно будет вставить заново (взять у @BotFather).</p>
+      <div class="actions">
+        <button id="reset" class="danger" type="button">Сбросить доступ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- МЕНЮ -->
+  <section id="menu" class="hidden">
+    <h1>Меню админа <span class="badge" id="status-badge">открыто</span></h1>
+    <p>Настройки зашифрованы паролем и хранятся только в этом браузере.</p>
+
+    <div class="card">
+      <div class="menu">
+        <a class="tile tile--primary" href="bot.html">
+          <span class="tile__icon" aria-hidden="true">🤖</span>
+          <span>
+            <span class="tile__title">Панель бота — принимать заявки</span>
+            <span class="tile__text">Пока вкладка открыта, бот забирает заявки с сайта и пересылает их модератору</span>
+          </span>
+        </a>
+        <button class="tile" id="check-bot" type="button">
+          <span class="tile__icon" aria-hidden="true">✅</span>
+          <span>
+            <span class="tile__title">Проверить бота</span>
+            <span class="tile__text">Живой ли токен и кому принадлежит бот</span>
+          </span>
+        </button>
+        <button class="tile" id="show-settings" type="button">
+          <span class="tile__icon" aria-hidden="true">⚙️</span>
+          <span>
+            <span class="tile__title">Настройки приёма заявок</span>
+            <span class="tile__text">Токен бота, chat_id модератора, адрес сайта</span>
+          </span>
+        </button>
+        <button class="tile" id="show-password" type="button">
+          <span class="tile__icon" aria-hidden="true">🔑</span>
+          <span>
+            <span class="tile__title">Сменить пароль</span>
+            <span class="tile__text">Настройки будут перешифрованы новым паролем</span>
+          </span>
+        </button>
+        <button class="tile" id="logout" type="button">
+          <span class="tile__icon" aria-hidden="true">🚪</span>
+          <span>
+            <span class="tile__title">Выйти</span>
+            <span class="tile__text">Закрыть доступ, пока не введёте пароль снова</span>
+          </span>
+        </button>
+      </div>
+      <p class="error" id="menu-error"></p>
+      <p class="ok" id="menu-ok"></p>
+    </div>
+
+    <div class="card">
+      <h2>Что сейчас настроено</h2>
+      <ul class="kv" id="summary"></ul>
+      <p class="hint">Токен показывается замаскированным: целиком его можно увидеть только у @BotFather.</p>
+    </div>
+
+    <!-- НАСТРОЙКИ -->
+    <div class="card hidden" id="settings-card">
+      <h2>Настройки приёма заявок</h2>
+      <label>
+        <span class="label">Токен бота</span>
+        <input id="s-token" type="password" autocomplete="off" spellcheck="false" placeholder="1234567890:AAH…"/>
+      </label>
+      <label>
+        <span class="label">chat_id модератора — кому присылать заявки</span>
+        <input id="s-moderator" type="text" inputmode="numeric" autocomplete="off" placeholder="7114829971"/>
+      </label>
+      <label>
+        <span class="label">Адрес сайта (необязательно)</span>
+        <input id="s-publicUrl" type="text" autocomplete="off" placeholder="https://ваш-логин.github.io/artmoto23.io/"/>
+      </label>
+      <div class="actions">
+        <button id="save-settings" class="primary" type="button">Сохранить</button>
+        <button id="cancel-settings" class="ghost" type="button">Отмена</button>
+      </div>
+      <p class="error" id="settings-error"></p>
+    </div>
+
+    <!-- СМЕНА ПАРОЛЯ -->
+    <div class="card hidden" id="password-card">
+      <h2>Смена пароля</h2>
+      <label>
+        <span class="label">Текущий пароль</span>
+        <input id="p-old" type="password" autocomplete="current-password"/>
+      </label>
+      <label>
+        <span class="label">Новый пароль (минимум 6 символов)</span>
+        <input id="p-new" type="password" autocomplete="new-password"/>
+      </label>
+      <label>
+        <span class="label">Повторите новый пароль</span>
+        <input id="p-new2" type="password" autocomplete="new-password"/>
+      </label>
+      <div class="actions">
+        <button id="save-password" class="primary" type="button">Сменить пароль</button>
+        <button id="cancel-password" class="ghost" type="button">Отмена</button>
+      </div>
+      <p class="error" id="password-error"></p>
+      <p class="hint">Пароль нужен и для панели бота: без входа в админку панель заявки не принимает.</p>
+    </div>
+
+    <div class="card">
+      <h2>Как это устроено</h2>
+      <p>Пароль и настройки живут только в этом браузере: в файлах сайта ни пароля, ни токена нет,
+         поэтому их нельзя подсмотреть на GitHub или через исходный код страницы. Токен зашифрован
+         паролем (AES-GCM), ключ выводится из пароля (PBKDF2-SHA256, 150 000 итераций).</p>
+      <p>Что важно знать: если кто-то получил ваш токен бота, пароль от админки его не остановит —
+         токен в этом случае нужно отозвать у @BotFather. Пароль защищает доступ к настройкам
+         на устройстве и лежащий в браузере токен.</p>
+    </div>
+  </section>
+
+</div>
+
+<script src="adminlock.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var vault = AdminLock.createVault({});
+  var savedPassword = "";        /* держим только пока открыта вкладка */
+  var current = { token: "", moderator: "", publicUrl: "" };
+
+  var el = {
+    lock: document.getElementById("lock"),
+    menu: document.getElementById("menu"),
+    lockTitle: document.getElementById("lock-title"),
+    lockLead: document.getElementById("lock-lead"),
+    setupBlock: document.getElementById("setup-block"),
+    unlockBlock: document.getElementById("unlock-block"),
+    newPassword: document.getElementById("new-password"),
+    newPassword2: document.getElementById("new-password2"),
+    password: document.getElementById("password"),
+    lockSubmit: document.getElementById("lock-submit"),
+    lockError: document.getElementById("lock-error"),
+    reset: document.getElementById("reset"),
+    menuError: document.getElementById("menu-error"),
+    menuOk: document.getElementById("menu-ok"),
+    summary: document.getElementById("summary"),
+    statusBadge: document.getElementById("status-badge"),
+    checkBot: document.getElementById("check-bot"),
+    showSettings: document.getElementById("show-settings"),
+    showPassword: document.getElementById("show-password"),
+    logout: document.getElementById("logout"),
+    settingsCard: document.getElementById("settings-card"),
+    settingsError: document.getElementById("settings-error"),
+    sToken: document.getElementById("s-token"),
+    sModerator: document.getElementById("s-moderator"),
+    sPublicUrl: document.getElementById("s-publicUrl"),
+    saveSettings: document.getElementById("save-settings"),
+    cancelSettings: document.getElementById("cancel-settings"),
+    passwordCard: document.getElementById("password-card"),
+    passwordError: document.getElementById("password-error"),
+    pOld: document.getElementById("p-old"),
+    pNew: document.getElementById("p-new"),
+    pNew2: document.getElementById("p-new2"),
+    savePassword: document.getElementById("save-password"),
+    cancelPassword: document.getElementById("cancel-password")
+  };
+
+  function mask(value) {
+    if (!value) return "не задан";
+    var tail = value.slice(-4);
+    return "•".repeat(Math.max(6, value.length - tail.length - 4)) + "…" + tail;
+  }
+
+  function showMenu(settings) {
+    current = settings || { token: "", moderator: "", publicUrl: "" };
+    el.lock.classList.add("hidden");
+    el.menu.classList.remove("hidden");
+    el.menuError.textContent = "";
+    el.sToken.value = current.token || "";
+    el.sModerator.value = current.moderator || "";
+    el.sPublicUrl.value = current.publicUrl || "";
+    el.summary.textContent = "";
+    [
+      ["Бот", current.token ? "настроен" : "не настроен"],
+      ["Токен", mask(current.token)],
+      ["chat_id модератора", current.moderator || "не задан"],
+      ["Адрес сайта", current.publicUrl || "не задан"],
+      ["Вход", "пароль + шифрование AES-GCM"]
+    ].forEach(function (row) {
+      var li = document.createElement("li");
+      var left = document.createElement("span");
+      var right = document.createElement("span");
+      left.textContent = row[0];
+      right.textContent = row[1];
+      li.appendChild(left);
+      li.appendChild(right);
+      el.summary.appendChild(li);
+    });
+  }
+
+  function showLock() {
+    el.menu.classList.add("hidden");
+    el.lock.classList.remove("hidden");
+    var hasPassword = vault.hasPassword();
+    el.setupBlock.classList.toggle("hidden", hasPassword);
+    el.unlockBlock.classList.toggle("hidden", !hasPassword);
+    el.lockTitle.textContent = hasPassword ? "Меню админа" : "Придумайте пароль админа";
+    el.lockLead.textContent = hasPassword
+      ? "Введите пароль, чтобы открыть настройки приёма заявок."
+      : "Это первый вход: пароль хранится только в этом браузере.";
+    el.lockSubmit.textContent = hasPassword ? "Войти" : "Задать пароль";
+    (hasPassword ? el.password : el.newPassword).focus();
+  }
+
+  function unlockOrSetup() {
+    el.lockError.textContent = "";
+    if (vault.hasPassword()) {
+      var password = el.password.value;
+      if (!password) { el.lockError.textContent = "Введите пароль"; return; }
+      vault.unlock(password).then(function (opened) {
+        savedPassword = password;
+        el.password.value = "";
+        showMenu(opened.settings || {});
+      }).catch(function (error) {
+        el.lockError.textContent = "⚠️ " + error.message;
+      });
+      return;
+    }
+    var one = el.newPassword.value;
+    if (one.length < 6) { el.lockError.textContent = "Пароль должен быть не короче 6 символов"; return; }
+    if (one !== el.newPassword2.value) { el.lockError.textContent = "Пароли не совпадают"; return; }
+    vault.setup(one).then(function () {
+      savedPassword = one;
+      el.newPassword.value = "";
+      el.newPassword2.value = "";
+      showMenu({});
+      el.menuOk.textContent = "Пароль задан. Теперь заполните настройки.";
+      el.settingsCard.classList.remove("hidden");
+    }).catch(function (error) {
+      el.lockError.textContent = "⚠️ " + error.message;
+    });
+  }
+
+  el.lockSubmit.addEventListener("click", unlockOrSetup);
+  [el.password, el.newPassword2].forEach(function (input) {
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); unlockOrSetup(); }
+    });
+  });
+
+  el.reset.addEventListener("click", function () {
+    if (!window.confirm("Удалить пароль и настройки из этого браузера? Токен бота придётся вставить заново.")) return;
+    vault.clear();
+    savedPassword = "";
+    current = { token: "", moderator: "", publicUrl: "" };
+    el.lockError.textContent = "Доступ сброшен — задайте новый пароль.";
+    showLock();
+  });
+
+  el.showSettings.addEventListener("click", function () {
+    el.settingsCard.classList.remove("hidden");
+    el.passwordCard.classList.add("hidden");
+    el.settingsError.textContent = "";
+    el.menuOk.textContent = "";
+    el.sToken.focus();
+  });
+
+  el.cancelSettings.addEventListener("click", function () {
+    el.settingsCard.classList.add("hidden");
+  });
+
+  el.saveSettings.addEventListener("click", function () {
+    var token = el.sToken.value.trim();
+    var moderator = el.sModerator.value.trim();
+    if (!token || token.indexOf(":") === -1) {
+      el.settingsError.textContent = "Токен выглядит неполным: он содержит цифры, двоеточие и буквы";
+      return;
+    }
+    if (!moderator) {
+      el.settingsError.textContent = "Укажите chat_id модератора (узнать: бот /id)";
+      return;
+    }
+    var settings = { token: token, moderator: moderator, publicUrl: el.sPublicUrl.value.trim() };
+    el.settingsError.textContent = "Сохраняю…";
+    vault.save(settings, savedPassword).then(function () {
+      showMenu(settings);
+      el.settingsCard.classList.add("hidden");
+      el.menuOk.textContent = "Настройки сохранены и зашифрованы.";
+    }).catch(function (error) {
+      el.settingsError.textContent = "⚠️ " + error.message;
+    });
+  });
+
+  el.checkBot.addEventListener("click", function () {
+    el.menuError.textContent = "";
+    el.menuOk.textContent = "";
+    if (!current.token) {
+      el.menuError.textContent = "Сначала заполните настройки: нужен токен бота";
+      el.settingsCard.classList.remove("hidden");
+      return;
+    }
+    el.menuOk.textContent = "Проверяю бота…";
+    fetch("https://api.telegram.org/bot" + current.token + "/getMe", { method: "POST" })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (data && data.ok) {
+          el.menuOk.textContent = "✅ Токен рабочий: @" + (data.result.username || data.result.id);
+          if (String(current.moderator) === String(data.result.id)) {
+            el.menuError.textContent = "⚠️ chat_id модератора совпадает с ботом — заявки уйдут самому боту";
+          }
+        } else {
+          el.menuError.textContent = "⚠️ " + ((data && data.description) || "токен не работает") +
+            (data && data.error_code === 401 ? " → возьмите свежий у @BotFather" : "");
+        }
+      })
+      .catch(function (error) {
+        el.menuError.textContent = "⚠️ Нет связи с api.telegram.org: " + error.message +
+          " (проверьте интернет, блокировщики, VPN)";
+      });
+  });
+
+  el.showPassword.addEventListener("click", function () {
+    el.passwordCard.classList.remove("hidden");
+    el.settingsCard.classList.add("hidden");
+    el.passwordError.textContent = "";
+    el.pOld.focus();
+  });
+
+  el.cancelPassword.addEventListener("click", function () {
+    el.passwordCard.classList.add("hidden");
+  });
+
+  el.savePassword.addEventListener("click", function () {
+    if (el.pNew.value.length < 6) { el.passwordError.textContent = "Новый пароль короче 6 символов"; return; }
+    if (el.pNew.value !== el.pNew2.value) { el.passwordError.textContent = "Новые пароли не совпадают"; return; }
+    el.passwordError.textContent = "Меняю пароль…";
+    vault.changePassword(el.pOld.value, el.pNew.value).then(function () {
+      savedPassword = el.pNew.value;
+      el.pOld.value = el.pNew.value = el.pNew2.value = "";
+      el.passwordCard.classList.add("hidden");
+      el.menuOk.textContent = "Пароль изменён, настройки перешифрованы.";
+    }).catch(function (error) {
+      el.passwordError.textContent = "⚠️ " + error.message;
+    });
+  });
+
+  el.logout.addEventListener("click", function () {
+    vault.closeSession();
+    savedPassword = "";
+    current = { token: "", moderator: "", publicUrl: "" };
+    el.settingsCard.classList.add("hidden");
+    el.passwordCard.classList.add("hidden");
+    el.menuOk.textContent = "";
+    el.lockError.textContent = "Вы вышли из админки.";
+    showLock();
+  });
+
+  /* Без WebCrypto пароль не защитить: честно говорим об этом, а не падаем. */
+  if (!AdminLock.isAvailable()) {
+    el.lockTitle.textContent = "Нужен https и современный браузер";
+    el.lockLead.textContent = AdminLock.UNAVAILABLE;
+    el.setupBlock.classList.add("hidden");
+    el.unlockBlock.classList.add("hidden");
+    el.lockSubmit.classList.add("hidden");
+    el.reset.classList.add("hidden");
+    return;
+  }
+
+  /* Если в этой вкладке уже входили — не мучаем паролем второй раз. */
+  if (vault.hasSession()) {
+    showMenu(vault.session() || {});
+  } else {
+    showLock();
+  }
+})();
+</script>
+</body>
+</html>

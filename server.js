@@ -313,8 +313,9 @@ var MIME = {
   ".pdf": "application/pdf"
 };
 
-/* Файлы, которые нельзя отдавать наружу. pricing.js, orderlink.js, botcore.js
-   и botpanel.js наоборот должны быть доступны: их грузит панель бота (bot.html). */
+/* Файлы, которые нельзя отдавать наружу. Скрипты страниц (pricing.js,
+   orderlink.js, botcore.js, botpanel.js, adminlock.js) наоборот должны быть
+   доступны: их грузят страницы админки и панели бота. */
 var DENY_FILES = ["server.js", "orders.jsonl", "env.js", "bot.js", "package.json",
   "package-lock.json", "render.yaml", "Dockerfile", ".dockerignore"];
 
