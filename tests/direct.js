@@ -57,6 +57,7 @@ function makeFetch(options) {
     if (opts.badToken) return reply({ ok: false, error_code: 401, description: "Unauthorized" });
     if (opts.blocked) return reply({ ok: false, error_code: 403, description: "Forbidden: bot was blocked by the user" });
     if (method === "getMe") return reply({ ok: true, result: { id: 42, username: "my_stickers_bot" } });
+    if (/^getUpdates/.test(method)) return reply({ ok: true, result: opts.updates || [] });
     if (method === "sendMessage") return reply({ ok: true, result: { message_id: log.length } });
     return reply({ ok: true, result: {} });
   }
@@ -213,6 +214,20 @@ check("HTML в имени клиента экранируется", function () 
   var checked = P.validate(order);
   var text = Direct.buildMessage(checked.value, P.calculate(checked.value), { orderId: "x", time: "t" });
   assert.ok(text.indexOf("&lt;b&gt;злой&lt;/b&gt;") !== -1, "имя не экранировано");
+});
+
+chain = chain.then(function () {
+  var fetchStub = makeFetch({ updates: [
+    { update_id: 1, message: { chat: { id: 7114829971, first_name: "Пётр", username: "petr_777" }, text: "/start" } },
+    { update_id: 2, message: { chat: { id: 7114829971, first_name: "Пётр", username: "petr_777" }, text: "ещё раз" } }
+  ] });
+  Direct.configure({ token: TOKEN, chatId: "", fetch: fetchStub });
+  return Direct.chats().then(function (reply) {
+    check("chats() подсказывает chat_id при настройке", function () {
+      assert.ok(reply.ok, reply.error);
+      assert.deepStrictEqual(reply.chats, [{ id: 7114829971, name: "Пётр", username: "petr_777" }]);
+    });
+  });
 });
 
 check("номера заявок не повторяются", function () {

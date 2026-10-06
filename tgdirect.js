@@ -24,7 +24,7 @@
    ------------------------------------------------------------------------ */
 
 /* Токен бота от @BotFather → /mybots → ваш бот → API Token. */
-var BOT_TOKEN = "";
+var BOT_TOKEN = "8964570845:AAF3S3PYsWgFwxYib9_4CWcuycLZIb-zU08";
 
 /* Кому присылать заявки: ваш chat_id числом (узнать — напишите боту /id
    в панели bot.html или откройте @userinfobot). Можно несколько получателей
@@ -170,6 +170,40 @@ function check() {
   });
 }
 
+/* Кто писал боту — чтобы узнать свой chat_id при настройке.
+   Напишите боту любое сообщение и выполните в консоли сайта:
+       await TgDirect.chats()
+   Вернётся список вида [{ id: 7114829971, name: "Пётр", username: "petr_777" }];
+   нужное число вписывается в CHAT_ID наверху этого файла. */
+function chats() {
+  if (!config.token) {
+    return Promise.resolve({ ok: false, error: "В tgdirect.js не заполнен BOT_TOKEN" });
+  }
+  return call("getUpdates", { limit: 100 }).then(function (data) {
+    if (!data || !data.ok) {
+      var reason = (data && data.description) || "нет ответа";
+      return { ok: false, error: reason, hint: hintFor(data && data.error_code, reason) };
+    }
+    var seen = {};
+    var list = [];
+    (data.result || []).forEach(function (update) {
+      var msg = update.message || update.edited_message || update.channel_post;
+      var chat = msg && msg.chat;
+      if (!chat || seen[chat.id]) return;
+      seen[chat.id] = true;
+      list.push({
+        id: chat.id,
+        name: [chat.first_name, chat.last_name].filter(Boolean).join(" ") || chat.title || "",
+        username: chat.username || ""
+      });
+    });
+    return { ok: true, chats: list };
+  }, function (error) {
+    var reason = error && error.message ? error.message : "нет связи";
+    return { ok: false, error: reason, hint: hintFor(0, reason) };
+  });
+}
+
 function sendMessage(chatId, text) {
   return call("sendMessage", {
     chat_id: chatId,
@@ -263,6 +297,7 @@ var API = {
   buildMessage: buildMessage,
   hintFor: hintFor,
   check: check,
+  chats: chats,
   send: send
 };
 
