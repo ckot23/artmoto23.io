@@ -29,39 +29,16 @@ var fs = require("fs");
 var path = require("path");
 var crypto = require("crypto");
 var P = require("./pricing.js");
+var E = require("./env.js");
 
-var ROOT = __dirname;
+var ROOT = E.ROOT;
 
 /* ---------------------------------------------------------------------------
    1. КОНФИГ
    ------------------------------------------------------------------------ */
 
-function loadEnvFile(file) {
-  var out = {};
-  var text;
-  try { text = fs.readFileSync(file, "utf8"); } catch (e) { return out; }
-  text.split(/\r?\n/).forEach(function (line) {
-    var trimmed = line.trim();
-    if (!trimmed || trimmed.charAt(0) === "#") return;
-    var eq = trimmed.indexOf("=");
-    if (eq < 1) return;
-    var key = trimmed.slice(0, eq).trim();
-    var value = trimmed.slice(eq + 1).trim();
-    if ((value.charAt(0) === '"' && value.slice(-1) === '"') ||
-        (value.charAt(0) === "'" && value.slice(-1) === "'")) {
-      value = value.slice(1, -1);
-    }
-    out[key] = value;
-  });
-  return out;
-}
-
-var fileEnv = loadEnvFile(path.join(ROOT, ".env"));
-function env(name, fallback) {
-  var value = process.env[name];
-  if (value === undefined || value === "") value = fileEnv[name];
-  return value === undefined || value === "" ? fallback : value;
-}
+/* Настройки читает общий модуль env.js — им же пользуется bot.js. */
+var env = E.env;
 
 var CONFIG = {
   botToken: env("BOT_TOKEN", ""),
