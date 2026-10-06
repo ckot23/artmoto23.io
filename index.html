@@ -7,18 +7,10 @@
 <meta name="color-scheme" content="dark light"/>
 <meta name="theme-color" content="#0E1012"/>
 <meta name="description" content="Наклейки любого размера на немецкой плёнке ORACAL — от 1 см до 5 м. Онлайн-расчёт цены, макет и заказ за 30 секунд."/>
-<!-- Адрес API приёма заказов (сервер server.js) — нужен, только если вы
-     развернули сервер. Если сервера нет (сайт живёт на одном GitHub Pages),
-     оставьте пустым: заявку примет бот — см. meta tg-bot ниже.
-     Пример: <meta name="api-base" content="https://artmoto23-orders.onrender.com"> -->
-<meta name="api-base" content=""/>
-
-<!-- Юзернейм бота приёма заявок (без @), например ckot23_orders_bot.
-     Если он указан, кнопка «Отправить заявку боту» подаёт боту команду
-     /start с данными заявки, а бот пересылает её модератору.
-     Заявки без сервера приходят с задержкой до ~5 минут (расписание GitHub
-     Actions), поэтому кнопка «Написать менеджеру» остаётся рядом. -->
-<meta name="tg-bot" content=""/>
+<!-- Заявки уходят напрямую в Telegram: браузер сам вызывает
+     api.telegram.org/bot<ТОКЕН>/sendMessage. Сервер не нужен — сайт работает
+     с любого статического хостинга (GitHub Pages и т. п.).
+     Токен бота и chat_id менеджера задаются в начале файла tgdirect.js. -->
 <title>Наклейки на заказ — ORACAL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF6B2C'/%3E%3Cpath d='M20 34c0-8 6-14 14-14h10v10c0 8-6 14-14 14H20z' fill='%230E1012'/%3E%3C/svg%3E"/>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1660,15 +1652,10 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
           <p class="note note--error" id="order-error" hidden></p>
 
-          <!-- Запасной путь без сервера: сайт лежит на статическом хостинге
-               (GitHub Pages), поэтому заявку несёт в Telegram сам посетитель:
-               боту командой /start или менеджеру готовым текстом. -->
+          <!-- Запасной путь: Telegram не ответил (нет сети, блокировщик, VPN).
+               Тогда заявку несёт менеджеру сам посетитель — готовым текстом. -->
           <div class="order__actions" id="order-fallback" hidden>
-            <a class="btn btn--primary btn--wide" id="order-bot-send" hidden
-               href="#" target="_blank" rel="noopener">Отправить заявку боту</a>
-            <a class="btn btn--secondary btn--wide" id="order-fallback-share" hidden
-               href="#" target="_blank" rel="noopener">Поделиться заявкой в Telegram</a>
-            <a class="btn btn--ghost btn--wide" id="order-fallback-send"
+            <a class="btn btn--primary btn--wide" id="order-fallback-send"
                href="https://t.me/ckot_23" target="_blank" rel="noopener">Написать менеджеру @ckot_23</a>
             <button class="btn btn--ghost btn--wide" id="order-fallback-copy" type="button">Скопировать текст заявки</button>
           </div>
@@ -1728,6 +1715,11 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 <!-- Галерея шаблонов: каталог и фото ведёт владелец из меню админа. -->
 <script src="templates.js"></script>
 <script src="templates/catalog.js"></script>
+
+<!-- Отправка заявки прямо в Telegram, без сервера.
+     pricing.js — прайс и текст заявки, tgdirect.js — токен и sendMessage. -->
+<script src="pricing.js"></script>
+<script src="tgdirect.js"></script>
 <script>
 /* ============================================================================
    Telegram Mini App «Наклейки на заказ»
@@ -1996,8 +1988,8 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     panelBuilder: $("panel-builder"), panelOrder: $("panel-order"),
     orderForm: $("order-form"), orderSend: $("order-send"), orderError: $("order-error"),
     orderFallback: $("order-fallback"), orderFallbackSend: $("order-fallback-send"),
-    orderFallbackShare: $("order-fallback-share"), orderFallbackCopy: $("order-fallback-copy"),
-    orderFallbackHint: $("order-fallback-hint"), orderBotSend: $("order-bot-send"),
+    orderFallbackCopy: $("order-fallback-copy"),
+    orderFallbackHint: $("order-fallback-hint"),
     orderSummary: $("order-summary"), orderTotal: $("order-total"),
     orderSuccess: $("order-success"), orderSuccessId: $("order-success-id"),
     orderSuccessText: $("order-success-text"),
@@ -2340,7 +2332,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
   var submitting = false;
   var lastMainLabel = "";
-  /* kind: "field" — ошибка заполнения (гаснет сама), "network" — связь с сервером. */
+  /* kind: "field" — ошибка заполнения (гаснет сама), "network" — связь с Telegram. */
   var orderErrorKind = null;
 
   function ctaLabel() {
@@ -2908,33 +2900,21 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
      ОТПРАВКА
      ====================================================================== */
 
-  /* Куда отправлять заявку. По умолчанию — тот же домен (см. meta api-base). */
-  function apiUrl(endpoint) {
-    return apiBaseConfigured() + "/" + String(endpoint).replace(/^\/+/, "");
+  /* Заявка уходит прямо в Telegram: TgDirect (tgdirect.js) вызывает
+     api.telegram.org/bot<ТОКЕН>/sendMessage из браузера. Сервера нет вообще,
+     поэтому сайт живёт на любом статическом хостинге. */
+  function directReady() {
+    return !!(window.TgDirect && window.TgDirect.isReady());
   }
 
-  function apiBaseConfigured() {
-    var meta = document.querySelector('meta[name="api-base"]');
-    return meta && meta.content ? meta.content.trim().replace(/\/+$/, "") : "";
-  }
-
-  /* Если сайт открыт не сервером заявок, а api-base не заполнен, заявки будут
-     уходить «в свой же домен» и теряться. Предупреждаем владельца в консоли —
-     но молчим, если настроен бот: он заявку примет. */
-  (function warnAboutApiBase() {
-    var meta = document.querySelector('meta[name="api-base"]');
-    var configured = !!(meta && meta.content && meta.content.trim());
-    if (configured) return;
-    var botMeta = document.querySelector('meta[name="tg-bot"]');
-    if (botMeta && botMeta.content && botMeta.content.trim()) return;
-    var host = location.hostname;
-    var sameOriginServer = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(host) ||
-      host.indexOf("onrender.com") !== -1 || host.indexOf("railway.app") !== -1 ||
-      host.indexOf("fly.dev") !== -1 || host.indexOf("herokuapp.com") !== -1;
-    if (sameOriginServer) return;
+  /* Если токен в tgdirect.js не заполнен, заявки уйти не смогут. Клиенту об
+     этом знать незачем (он увидит запасной путь), а владельцу — пора чинить. */
+  (function warnAboutToken() {
+    if (directReady()) return;
     if (window.console && console.warn) {
-      console.warn("Заявки не уйдут: сайт открыт на " + host +
-        ", а <meta name=\"api-base\"> пустой. Укажите адрес сервера заявок в index.html.");
+      console.warn(window.TgDirect
+        ? "Заявки не уйдут: в tgdirect.js пустые BOT_TOKEN и/или CHAT_ID."
+        : "Заявки не уйдут: не подключён tgdirect.js (и pricing.js перед ним).");
     }
   })();
 
@@ -2966,102 +2946,15 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   }
 
   /* --------------------------------------------------------------------------
-     ЗАПАСНОЙ ПУТЬ БЕЗ СЕРВЕРА
-     Сайт лежит на статическом хостинге (GitHub Pages) — Node-сервера рядом нет,
-     POST /api/order отвечает 404 страницей, а tg.sendData() работает только
-     внутри Telegram и только если где-то запущен сам бот. Тогда единственный
-     надёжный путь — открыть чат с менеджером с уже готовым текстом заявки.
+     ЗАПАСНОЙ ПУТЬ
+     Прямой вызов Telegram может не пройти: нет сети, блокировщик рекламы режет
+     запрос к api.telegram.org, у провайдера фильтр. Тогда заявку несёт
+     менеджеру сам посетитель — готовым текстом в чат.
      ---------------------------------------------------------------------- */
 
   var MANAGER_TG = "https://t.me/ckot_23";
 
-  /* --------------------------------------------------------------------------
-     ССЫЛКА НА БОТА
-
-     Telegram разрешает в «t.me/бот?start=…» не больше 64 символов base64url —
-     это 48 байт. Поэтому заявка упаковывается в компактную строку
-     1|m|o|k|r|10|10|10|Пётр|Рига, СДЭК, а лишнее (комментарий) бот спросит
-     в чате. Разбор на стороне бота — orderlink.js; совпадение форматов
-     проверяет npm test («сайт → бот»).
-     ---------------------------------------------------------------------- */
-
-  function botUsername() {
-    var meta = document.querySelector('meta[name="tg-bot"]');
-    return meta && meta.content ? meta.content.trim().replace(/^@/, "") : "";
-  }
-
-  /* Упаковка заявки в параметр ?start= (не больше 64 символов). */
-  function packStart(order) {
-    var CODES = {
-      film: { matte: "m", gloss: "g", transparent: "t", metallic: "M", reflective: "r" },
-      design: { own: "o", text: "t", logo: "l", catalog: "c" },
-      color: { black: "k", white: "w", red: "r", blue: "b", green: "g", yellow: "y", orange: "o", silver: "s", gold: "z", fullcolor: "f" },
-      shape: { rectangle: "r", rounded: "d", circle: "c" }
-    };
-    function bytes(s) { return new TextEncoder().encode(s).length; }
-    function cut(s, max) {
-      var out = "";
-      for (var i = 0; i < s.length; i++) {
-        var next = out + s.charAt(i);
-        if (bytes(next) > max) break;
-        out = next;
-      }
-      return out;
-    }
-    function tidy(v) {
-      return String(v == null ? "" : v).replace(/[\r\n\t]+/g, " ").replace(/\|/g, "/").replace(/\s+/g, " ").trim();
-    }
-    function numeral(v) {
-      var n = Number(v);
-      return isFinite(n) ? String(Math.round(n * 10) / 10) : "0";
-    }
-    var parts = [
-      "1",
-      CODES.film[order.film] || "m", CODES.design[order.design] || "o",
-      CODES.color[order.color] || "k", CODES.shape[order.shape] || "r",
-      numeral(order.w), numeral(order.h), numeral(order.qty)
-    ];
-    var budget = 48 - bytes(parts.join("|") + "|");
-    var tail = [tidy(order.name), tidy(order.delivery), tidy(order.comment)];
-    for (var i = 0; i < tail.length && budget > 0; i++) {
-      if (!tail[i]) { parts.push(""); budget -= 1; continue; }
-      var room = budget - 1;
-      var fits = bytes(tail[i]) <= room;
-      var piece = fits ? tail[i] : cut(tail[i], room);
-      if (!piece || (!fits && bytes(piece) < 8)) break;      /* обрывок бесполезен */
-      parts.push(piece);
-      budget -= 1 + bytes(piece);
-    }
-    while (parts.length > 8 && parts[parts.length - 1] === "") parts.pop();
-    var text = parts.join("|");
-    if (bytes(text) > 48) text = cut(text, 48);
-    /* base64url внутрь: функция должна быть самодостаточной — её целиком
-       вытаскивает и проверяет npm run test:bot */
-    var utf8 = new TextEncoder().encode(text);
-    var binary = "";
-    for (var j = 0; j < utf8.length; j++) binary += String.fromCharCode(utf8[j]);
-    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }
-
-  function base64urlText(text) {
-    var utf8 = new TextEncoder().encode(text);
-    var binary = "";
-    for (var i = 0; i < utf8.length; i++) binary += String.fromCharCode(utf8[i]);
-    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }
-
-  function orderBotLink(payload) {
-    return "https://t.me/" + botUsername() + "?start=" + packStart(payload);
-  }
-
-  /* Полная заявка (включая комментарий) — сообщением через «Поделиться». */
-  function orderShareLink(payload) {
-    var text = orderPlainText(payload) + "\n\n" + "#STICKERS:" + base64urlText(JSON.stringify(payload));
-    return "https://t.me/share/url?url=" + encodeURIComponent(location.origin + location.pathname) +
-      "&text=" + encodeURIComponent(text);
-  }
-
-  /* Тот же текст, что сервер отправляет модератору, но простым текстом. */
+  /* Тот же текст, что уходит менеджеру, но простым текстом — для чата вручную. */
   function orderPlainText(payload) {
     var film = byId(FILMS, payload.film);
     var design = byId(DESIGNS, payload.design);
@@ -3090,30 +2983,17 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   }
 
   function showTelegramFallback(payload, message) {
-    var bot = botUsername();
-    showOrderError(bot
-      ? "Заявку можно отправить прямо сейчас: её передаст бот (кнопка ниже)."
-      : message, "network");
-    el.orderBotSend.hidden = !bot;
-    el.orderFallbackShare.hidden = !bot;
+    showOrderError(message, "network");
     el.orderFallbackSend.setAttribute("href", telegramOrderLink(payload));
-    if (bot) {
-      el.orderBotSend.setAttribute("href", orderBotLink(payload));
-      el.orderFallbackShare.setAttribute("href", orderShareLink(payload));
-      setText(el.orderFallbackHint, "Кнопка «Отправить заявку боту» открывает чат с @" + bot +
-        " — нажмите там «ЗАПУСТИТЬ», и бот передаст заявку менеджеру. Бот отвечает с задержкой " +
-        "до 5 минут, поэтому если нужно срочно — напишите менеджеру.");
-    } else {
-      setText(el.orderFallbackHint, "Заявка в Telegram отправляется вашим сообщением: " +
-        "текст уже подставлен, останется нажать «Отправить».");
-    }
+    setText(el.orderFallbackHint, "Заявка уйдёт вашим сообщением: текст уже подставлен, " +
+      "останется нажать «Отправить» в Telegram.");
     el.orderFallbackHint.hidden = false;
     el.orderFallback.hidden = false;
   }
 
   /* Внутри Telegram t.me-ссылку открываем штатным способом — иначе клиент
      может не пустить внешний переход. */
-  [el.orderBotSend, el.orderFallbackShare, el.orderFallbackSend].forEach(function (link) {
+  [el.orderFallbackSend].forEach(function (link) {
     link.addEventListener("click", function (event) {
       if (!insideTelegram() || !tg.openTelegramLink) return;
       event.preventDefault();
@@ -3152,47 +3032,22 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
   /* Экран «заявка отправлена». */
   function orderSent(result) {
-    var viaBot = !(result && result.order_id);
     el.orderForm.hidden = true;
     el.orderSuccess.hidden = false;
 
-    if (viaBot) {
-      el.orderSuccessId.hidden = true;
-      setText(el.orderSuccessText, "Заявка ушла боту в Telegram. Ответ придёт в этот чат — " +
-        "обычно в течение 5 минут. Если ответа не будет — напишите @ckot_23.");
-    } else {
-      el.orderSuccessId.hidden = false;
-      setText(el.orderSuccessId, "Заказ №" + result.order_id);
-      setText(el.orderSuccessText, result.dry_run
-        ? "Тестовый режим: заявка записана на сервере и менеджеру не ушла. Чтобы отправлять по-настоящему, поставьте DRY_RUN=0 в .env."
-        : "Менеджер получил заявку и ответит вам в " + contactKind(state.contact) + ".");
-    }
+    el.orderSuccessId.hidden = false;
+    setText(el.orderSuccessId, "Заказ №" + result.order_id);
+    setText(el.orderSuccessText,
+      "Менеджер получил заявку в Telegram и ответит вам в " + contactKind(state.contact) + ".");
 
     hapticNotify("success");
-    toast(viaBot ? "Заявка отправлена в Telegram" : "Заявка №" + result.order_id + " принята", "ok");
+    toast("Заявка №" + result.order_id + " отправлена", "ok");
     if (tg && tg.disableClosingConfirmation) {
       try { tg.disableClosingConfirmation(); } catch (e) { /* старый клиент */ }
     }
 
     var top = el.orderSuccess.getBoundingClientRect().top + window.pageYOffset - 80;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-  }
-
-  /* Заявка через бота внутри Mini App — если HTTP-сервер недоступен.
-
-     Важно: снаружи Telegram скрипт telegram-web-app.js тоже создаёт объект
-     WebApp, а sendData() там просто уходит в никуда и не бросает ошибку
-     (см. insideTelegram()). Если вызвать его в обычном браузере, посетитель
-     увидит «заявка отправлена», а заявка пропадёт — поэтому проверяем окно. */
-  function sendViaMiniApp(payload) {
-    if (!insideTelegram() || !tg || typeof tg.sendData !== "function") return false;
-    try {
-      tg.sendData(JSON.stringify(payload));
-      orderSent({ mini_app: true });
-      return true;
-    } catch (e) {
-      return false;
-    }
   }
 
   function submit() {
@@ -3227,66 +3082,49 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
     var payload = orderPayload();
 
-    /* Внутри Telegram и без сервера заявок: не ждём 404 от статического
-       хостинга, а сразу отдаём заявку боту. */
-    if (insideTelegram() && !apiBaseConfigured()) {
-      if (sendViaMiniApp(payload)) return;
+    /* Токен не вписан или tgdirect.js не подключён — не делаем вид, что
+       отправляем: показываем запасной путь сразу. */
+    if (!directReady()) {
+      showTelegramFallback(payload, "Автоматическая отправка не настроена. " +
+        "Отправьте заявку менеджеру в Telegram — текст уже готов:");
+      hapticNotify("error");
+      return;
     }
 
     submitting = true;
     paintSubmit();
 
-    var controller = typeof AbortController === "function" ? new AbortController() : null;
-    var timer = window.setTimeout(function () { if (controller) controller.abort(); }, 12000);
+    /* Mini App: id клиента нужен, чтобы в заявке была ссылка «написать клиенту». */
+    var userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
 
-    fetch(apiUrl("api/order"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.assign(
-        { init_data: tg ? tg.initData : "" },
-        payload
-      )),
-      signal: controller ? controller.signal : undefined
-    })
-      .then(function (response) {
-        /* Читаем телом, а не response.json(): статический хостинг (GitHub Pages)
-           отвечает на /api/order HTML-страницей 404, и это не должно выглядеть
-           как «заявка ушла». */
-        return response.text().then(function (bodyText) {
-          var data = null;
-          try { data = JSON.parse(bodyText); } catch (e) { data = null; }
-          return { status: response.status, data: data };
-        });
-      })
+    window.TgDirect.send(payload, { userId: userId })
       .then(function (reply) {
-        window.clearTimeout(timer);
         submitting = false;
         paintSubmit();
-        if (reply.data && reply.data.ok) { orderSent(reply.data); return; }
 
-        /* Сервер ответил и объяснил причину (недействительный токен бота,
-           модератор не получает сообщения и т. п.) — заявка до сервера дошла,
-           но менеджеру не ушла. Говорим об этом честно, а не «всё отправлено». */
-        if (reply.data && reply.data.error) {
-          if (sendViaMiniApp(payload)) return;
-          showTelegramFallback(payload, reply.data.error);
+        if (reply.ok) { orderSent(reply); return; }
+
+        /* Поле не прошло проверку — чинится прямо в форме, запасной путь не нужен. */
+        if (reply.kind === "field") {
+          showOrderError(reply.error);
           hapticNotify("error");
+          focusField(fieldForError(reply.error));
           return;
         }
 
-        /* Ответ не от нашего сервера: сайт открыт на статическом хостинге,
-           а api-base не указан. Запасной путь — только внутри Telegram. */
-        if (sendViaMiniApp(payload)) return;
-        showTelegramFallback(payload, "Сервер заявок не отвечает (HTTP " + reply.status +
-          "). Отправьте заявку в Telegram — текст уже готов:");
+        /* Telegram ответил отказом или не ответил вовсе: честно говорим об этом
+           и даём посетителю готовый текст для чата с менеджером. */
+        if (window.console && console.warn) {
+          console.warn("Заявка не ушла: " + reply.error + (reply.hint ? " → " + reply.hint : ""));
+        }
+        showTelegramFallback(payload, "Telegram не принял заявку. " +
+          "Отправьте её менеджеру сообщением — текст уже готов:");
         hapticNotify("error");
       })
       .catch(function () {
-        window.clearTimeout(timer);
         submitting = false;
         paintSubmit();
-        if (sendViaMiniApp(payload)) return;
-        showTelegramFallback(payload, "Нет связи с сервером заявок. Отправьте заявку в Telegram — текст уже готов:");
+        showTelegramFallback(payload, "Нет связи с Telegram. Отправьте заявку менеджеру — текст уже готов:");
         hapticNotify("error");
       });
   }

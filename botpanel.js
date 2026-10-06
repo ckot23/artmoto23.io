@@ -25,14 +25,14 @@ if (!Core) throw new Error("botpanel.js: не загружен botcore.js (по�
 
 var TG_API = "https://api.telegram.org/bot";
 
-/* Ошибки Telegram человеческим языком (одинаково с server.js и bot.js). */
+/* Ошибки Telegram человеческим языком (одинаково с tgdirect.js). */
 function hintFor(code, description) {
   var text = String(description || "").toLowerCase();
   if (code === 401) return "токен недействителен: скопируйте свежий у @BotFather (/mybots → API Token)";
   if (code === 403) return "получатель не начинал диалог с ботом: пусть нажмёт «Start» в чате с ботом";
   if (code === 400 && text.indexOf("chat not found") !== -1) return "chat_id указан неверно: напишите боту /id и возьмите число оттуда";
-  if (code === 409) return "очередь занята (409 Conflict): её держит другой потребитель — сервер сайта, "
-    + "вторая вкладка, GitHub Actions или node bot.js: оставьте что-то одно";
+  if (code === 409) return "очередь занята (409 Conflict): её держит другой потребитель — "
+    + "вторая вкладка панели или сервер с тем же токеном: оставьте что-то одно";
   if (code === 429) return "Telegram просит подождать: слишком много запросов";
   if (text.indexOf("failed to fetch") !== -1 || text.indexOf("networkerror") !== -1) {
     return "браузер не смог обратиться к api.telegram.org: проверьте интернет, блокировщики и VPN";
@@ -165,17 +165,17 @@ function createBot(options) {
           note("getUpdates: " + reason +
             (hintFor(data && data.error_code, reason) ? " → " + hintFor(data && data.error_code, reason) : ""), "error");
           if (data && data.error_code === 401) { stop(); return; }
-          /* 409 Conflict: очередь getUpdates занята — сервер сайта, вторая
-             вкладка, GitHub Actions или node bot.js. Спорить бессмысленно:
+          /* 409 Conflict: очередь getUpdates занята — вторая вкладка панели
+             или другой бот с тем же токеном. Спорить бессмысленно:
              отступаем, а если очередь так и занята — останавливаемся. */
           if (data && data.error_code === 409) {
             conflictStreak++;
             stats.conflicts++;
             if (conflictStreak >= CONFLICT_STOP_AFTER) {
-              note("Обновления стабильно забирает кто-то другой (постоянный сервер сайта, " +
-                "GitHub Actions или вторая вкладка). Эта вкладка останавливается, чтобы не спорить " +
-                "за getUpdates: заявки всё равно доходят. Если принимать их должна вкладка — " +
-                "остановите сервер и нажмите «Запустить» снова.", "warn");
+              note("Обновления стабильно забирает кто-то другой (вторая вкладка панели " +
+                "или сервер с тем же токеном). Эта вкладка останавливается, чтобы не спорить " +
+                "за getUpdates. Заявки с сайта это не затрагивает: они идут в Telegram напрямую. " +
+                "Если отвечать в чате должна эта вкладка — закройте вторую и нажмите «Запустить» снова.", "warn");
               stop();
               return;
             }

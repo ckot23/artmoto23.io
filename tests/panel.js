@@ -314,12 +314,15 @@ chain = chain.then(function () {
   });
 });
 
-/* 8. Токен — только из полей админки, в файлах его нет. */
+/* 8. Токен панели — только из полей админки, в её файлах его нет.
+
+   Исключение одно и намеренное: tgdirect.js. Там токен лежит открыто, иначе
+   сайт не смог бы отправить заявку сам, без сервера (см. README → «Токен
+   лежит в файлах»). Все остальные файлы токен содержать не должны. */
 chain = chain.then(function () {
-  console.log("\n8. Токен не попадает в файлы");
+  console.log("\n8. Токен не попадает в файлы панели");
   var html = fs.readFileSync(path.join(ROOT, "bot.html"), "utf8");
   var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
-  var workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/bot.yml"), "utf8");
 
   check("токен вводится в меню админа и там же шифруется", function () {
     assert.ok(admin.indexOf('id="s-token" type="password"') !== -1, "нет защищённого поля токена");
@@ -330,18 +333,14 @@ chain = chain.then(function () {
     assert.ok(html.indexOf("vault.session()") !== -1, "панель не читает сессию");
     assert.ok(html.indexOf("AdminLock.createVault") !== -1, "панель не использует замок");
   });
-  check("ни в одном файле нет токена бота", function () {
-    var files = ["bot.html", "admin.html", "botpanel.js", "botcore.js", "bot.js",
-      "adminlock.js", "index.html", "orderlink.js", "pricing.js", "env.js"];
+  check("кроме tgdirect.js токена в файлах нет", function () {
+    var files = ["bot.html", "admin.html", "botpanel.js", "botcore.js",
+      "adminlock.js", "index.html", "orderlink.js", "pricing.js"];
     var found = files.filter(function (name) {
       var text = fs.readFileSync(path.join(ROOT, name), "utf8");
       return /\d{8,}:[A-Za-z0-9_-]{30,}/.test(text);
     });
     assert.strictEqual(found.length, 0, "токен найден в: " + found.join(", "));
-  });
-  check("в workflow токен по-прежнему из секретов", function () {
-    assert.ok(workflow.indexOf("secrets.BOT_TOKEN") !== -1);
-    assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(workflow));
   });
   check("на страницах написано, где лежит токен", function () {
     assert.ok(html.indexOf("Токен лежит в этом браузере зашифрованным паролем") !== -1);
