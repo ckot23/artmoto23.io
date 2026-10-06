@@ -18,7 +18,10 @@
      POLL            — 1: слушать getUpdates и принимать заказы из Mini App
      WEBHOOK_SECRET  — секрет для /api/tg-webhook (защита вебхука)
      ALLOW_ORIGIN    — если сайт лежит на другом домене, укажите его origin
-     LOG_ORDERS      — 1 (по умолчанию): дублировать заявки в orders.jsonl
+                    (можно несколько через запятую)
+   WEBHOOK_AUTO    — 1: поставить вебхук на своём адресе при запуске
+   SERVER_URL      — публичный адрес этого сервера (на Render берётся сам)
+   LOG_ORDERS      — 1 (по умолчанию): дублировать заявки в orders.jsonl
    ========================================================================= */
 
 var http = require("http");
@@ -26,39 +29,16 @@ var fs = require("fs");
 var path = require("path");
 var crypto = require("crypto");
 var P = require("./pricing.js");
+var E = require("./env.js");
 
-var ROOT = __dirname;
+var ROOT = E.ROOT;
 
 /* ---------------------------------------------------------------------------
    1. КОНФИГ
    ------------------------------------------------------------------------ */
 
-function loadEnvFile(file) {
-  var out = {};
-  var text;
-  try { text = fs.readFileSync(file, "utf8"); } catch (e) { return out; }
-  text.split(/\r?\n/).forEach(function (line) {
-    var trimmed = line.trim();
-    if (!trimmed || trimmed.charAt(0) === "#") return;
-    var eq = trimmed.indexOf("=");
-    if (eq < 1) return;
-    var key = trimmed.slice(0, eq).trim();
-    var value = trimmed.slice(eq + 1).trim();
-    if ((value.charAt(0) === '"' && value.slice(-1) === '"') ||
-        (value.charAt(0) === "'" && value.slice(-1) === "'")) {
-      value = value.slice(1, -1);
-    }
-    out[key] = value;
-  });
-  return out;
-}
-
-var fileEnv = loadEnvFile(path.join(ROOT, ".env"));
-function env(name, fallback) {
-  var value = process.env[name];
-  if (value === undefined || value === "") value = fileEnv[name];
-  return value === undefined || value === "" ? fallback : value;
-}
+/* Настройки читает общий модуль env.js — им же пользуется bot.js. */
+var env = E.env;
 
 var CONFIG = {
   botToken: env("BOT_TOKEN", ""),
@@ -66,8 +46,10 @@ var CONFIG = {
   port: parseInt(env("PORT", "8080"), 10),
   host: env("HOST", "0.0.0.0"),
   dryRun: env("DRY_RUN", "0") === "1",
-  poll: env("POLL", "0") === "1",
+  poll: String(env("POLL", "auto")).trim().toLowerCase(),
   webhookSecret: env("WEBHOOK_SECRET", ""),
+  webhookAuto: env("WEBHOOK_AUTO", "0") === "1",
+  serverUrl: (env("SERVER_URL", "") || env("RENDER_EXTERNAL_URL", "")).replace(/\/+$/, ""),
   allowOrigin: env("ALLOW_ORIGIN", ""),
   logOrders: env("LOG_ORDERS", "1") === "1",
   publicUrl: env("PUBLIC_URL", "")
@@ -76,6 +58,12 @@ var CONFIG = {
 /* Нет токена — отправлять некуда, автоматически уходим в тестовый режим,
    чтобы сайт можно было спокойно смотреть локально. */
 if (!CONFIG.botToken || !CONFIG.moderatorId) CONFIG.dryRun = true;
+
+/* Как сервер получает обновления от Telegram (заказы из Mini App, команды):
+     poll  — слушаем getUpdates;
+     webhook — обновления приходят на /api/tg-webhook;
+     off   — обновления не принимаем. */
+var updates = { mode: "off", url: "", reason: "" };
 
 var TG_API = "https://api.telegram.org/bot";
 var ORDERS_LOG = path.join(ROOT, "orders.jsonl");
@@ -109,13 +97,113 @@ function sendToModerator(text) {
   }).then(function (data) {
     if (!data || !data.ok) {
       var reason = (data && data.description) || "неизвестная ошибка";
-      console.error("[telegram] не отправлено: " + reason);
-      return { ok: false, error: reason };
+      var hint = telegramHint(data && data.error_code, reason);
+      console.error("[telegram] не отправлено: " + reason + (hint ? " → " + hint : ""));
+      return { ok: false, error: reason, hint: hint };
     }
     return { ok: true };
   }).catch(function (error) {
     console.error("[telegram] сеть недоступна: " + error.message);
     return { ok: false, error: "Сеть недоступна: " + error.message };
+  });
+}
+
+/* Расшифровка типовых ошибок Telegram — чтобы «заявка не дошла» не искали
+   методом тыка. Пустая строка (нет подсказки) — тоже ответ. */
+function telegramHint(code, description) {
+  var text = String(description || "").toLowerCase();
+  if (code === 401) return "токен бота недействителен: получите новый у @BotFather (/mybots → API Token) и впишите его в .env → BOT_TOKEN";
+  if (code === 403) return "бот не может написать этому получателю: MODERATOR_ID должен сам открыть бота и нажать «Start»";
+  if (code === 400 && text.indexOf("chat not found") !== -1) return "MODERATOR_ID указан неверно: узнайте свой chat_id, отправив боту /id";
+  if (code === 400 && text.indexOf("parse") !== -1) return "текст заявки не прошёл разметку HTML — сообщите об этом разработчику";
+  if (code === 429) return "слишком много сообщений в минуту: Telegram просит подождать";
+  if (text.indexOf("timed out") !== -1 || text.indexOf("fetch failed") !== -1) return "нет связи с api.telegram.org (файрвол, прокси у хостинга)";
+  return "";
+}
+
+/* Проверка бота при старте: живой ли токен и кому он принадлежит. */
+function botDiagnostics() {
+  if (!CONFIG.botToken) {
+    console.log("⚠️  BOT_TOKEN не задан — заявки уходят только в лог (см. .env.example)");
+    return Promise.resolve(null);
+  }
+  return tgCall("getMe", {}).then(function (data) {
+    if (data && data.ok && data.result) {
+      console.log("Бот: @" + (data.result.username || data.result.first_name) + " (id " + data.result.id + ")");
+      return data.result;
+    }
+    var code = data && data.error_code;
+    console.error("⚠️  Токен бота не работает: " + ((data && data.description) || "нет ответа"));
+    var hint = telegramHint(code, data && data.description);
+    if (hint) console.error("⚠️  " + hint);
+    return null;
+  }).catch(function (error) {
+    console.error("⚠️  api.telegram.org недоступен: " + error.message +
+      " — заявки не смогут уйти менеджеру");
+    return null;
+  });
+}
+
+/* Регистрация вебхука на хостинге: адрес сервера известен (SERVER_URL, а на
+   Render — RENDER_EXTERNAL_URL), поэтому сервер сам сообщает его Telegram.
+   Это ещё и будильник: Telegram стучится к спящему контейнеру и поднимает его. */
+function registerWebhook() {
+  if (!CONFIG.webhookAuto) return Promise.resolve(null);
+  if (!CONFIG.webhookSecret) {
+    console.error("⚠️  WEBHOOK_AUTO=1, но WEBHOOK_SECRET пустой — вебхук не регистрирую (его пришлось бы принимать от кого угодно)");
+    return Promise.resolve(null);
+  }
+  if (!CONFIG.serverUrl) {
+    console.error("⚠️  WEBHOOK_AUTO=1, но не задан SERVER_URL — вебхук не регистрирую");
+    return Promise.resolve(null);
+  }
+  var target = CONFIG.serverUrl + "/api/tg-webhook";
+  return tgCall("setWebhook", {
+    url: target,
+    secret_token: CONFIG.webhookSecret,
+    allowed_updates: ["message"],
+    drop_pending_updates: false
+  }).then(function (data) {
+    if (data && data.ok) {
+      console.log("Вебхук зарегистрирован: " + target);
+      return target;
+    }
+    console.error("⚠️  Не удалось поставить вебхук: " + ((data && data.description) || "нет ответа"));
+    return null;
+  }).catch(function (error) {
+    console.error("⚠️  Вебхук не установлен: " + error.message);
+    return null;
+  });
+}
+
+/* Режим приёма обновлений. POLL=auto (по умолчанию) сам выбирает:
+   вебхук уже стоит → обновления придут на него; вебхука нет → слушаем сами,
+   иначе заказы, отправленные сайтом через tg.sendData, потерялись бы. */
+function resolveUpdatesMode() {
+  if (CONFIG.poll === "0" || CONFIG.poll === "off" || CONFIG.poll === "no") {
+    updates = { mode: "off", url: "", reason: "POLL=0" };
+    return Promise.resolve(updates);
+  }
+  if (CONFIG.poll === "1" || CONFIG.poll === "on" || CONFIG.poll === "yes") {
+    updates = { mode: "poll", url: "", reason: "POLL=1" };
+    return Promise.resolve(updates);
+  }
+  if (!CONFIG.botToken) {
+    updates = { mode: "off", url: "", reason: "нет токена бота" };
+    return Promise.resolve(updates);
+  }
+  return tgCall("getWebhookInfo", {}).then(function (data) {
+    var url = data && data.ok && data.result && data.result.url;
+    updates = url
+      ? { mode: "webhook", url: url, reason: "вебхук уже установлен" }
+      : { mode: "poll", url: "", reason: "POLL=auto, вебхука нет" };
+    return updates;
+  }).catch(function (error) {
+    /* Telegram не ответил (сеть, файрвол у хостинга): не выключаем приём
+       обновлений, а пробуем слушать getUpdates — лучше потерять вебхук,
+       чем заказ. */
+    updates = { mode: "poll", url: "", reason: "нет связи с Telegram при старте: " + error.message };
+    return updates;
   });
 }
 
@@ -216,6 +304,7 @@ var MIME = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
+  ".avif": "image/avif",
   ".gif": "image/gif",
   ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8",
@@ -225,8 +314,11 @@ var MIME = {
   ".pdf": "application/pdf"
 };
 
-/* Файлы, которые нельзя отдавать наружу. */
-var DENY_FILES = ["server.js", "orders.jsonl", "pricing.js", "package.json", "package-lock.json"];
+/* Файлы, которые нельзя отдавать наружу. Скрипты страниц (pricing.js,
+   orderlink.js, botcore.js, botpanel.js, adminlock.js) наоборот должны быть
+   доступны: их грузят страницы админки и панели бота. */
+var DENY_FILES = ["server.js", "orders.jsonl", "env.js", "bot.js", "package.json",
+  "package-lock.json", "render.yaml", "Dockerfile", ".dockerignore"];
 
 var RATE_WINDOW_MS = 15 * 60 * 1000;
 var RATE_MAX = 8;
@@ -268,7 +360,13 @@ function sendJson(res, status, payload) {
 
 function applyCors(req, res) {
   if (!CONFIG.allowOrigin) return;
-  res.setHeader("Access-Control-Allow-Origin", CONFIG.allowOrigin);
+  var allowed = CONFIG.allowOrigin.split(",").map(function (item) { return item.trim(); })
+    .filter(function (item) { return item; });
+  if (!allowed.length) return;
+  /* Сайт может открываться и с GitHub Pages, и с домена — разрешаем список. */
+  var origin = req.headers.origin;
+  var value = origin && allowed.indexOf(origin) !== -1 ? origin : allowed[0];
+  res.setHeader("Access-Control-Allow-Origin", value);
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -318,6 +416,7 @@ function serveStatic(req, res, pathname) {
 function handleUpdate(update) {
   var message = update && (update.message || update.edited_message);
   if (!message) return Promise.resolve();
+  var chatId = message.chat && message.chat.id;
 
   /* Заказ из Mini App (сайт отправил tg.sendData). */
   if (message.web_app_data && message.web_app_data.data) {
@@ -326,21 +425,39 @@ function handleUpdate(update) {
     if (payload) {
       var userId = message.from && message.from.id;
       return acceptOrder(payload, { source: "mini-app", userId: userId }).then(function (result) {
-        if (!result.ok) console.error("[mini-app] заявка отклонена: " + result.error);
-        else console.log("[mini-app] заявка " + result.order_id + " отправлена модератору");
+        if (result.ok) {
+          console.log("[mini-app] заявка " + result.order_id + " отправлена модератору");
+          return;
+        }
+        /* Заявка НЕ ушла: клиент об этом узнает сразу в чате с ботом,
+           иначе он останется ждать ответа менеджера. */
+        console.error("[mini-app] заявка отклонена: " + result.error);
+        if (!chatId) return;
+        return tgCall("sendMessage", {
+          chat_id: chatId,
+          text: "⚠️ Заявку не удалось передать менеджеру: " + result.error,
+          disable_web_page_preview: true
+        }).catch(function () { /* клиент мог заблокировать бота */ });
       });
     }
   }
 
   var text = String(message.text || "");
-  var chatId = message.chat && message.chat.id;
   if (!chatId) return Promise.resolve();
 
   if (text.indexOf("/start") === 0) {
     var hello = "Привет! Здесь принимаются заказы на наклейки.\n\n" +
       "Соберите наклейку в конструкторе" + (CONFIG.publicUrl ? ": " + CONFIG.publicUrl : " на сайте") +
       " — заявка придёт менеджеру, он напишет вам в Telegram.";
-    return tgCall("sendMessage", { chat_id: chatId, text: hello, disable_web_page_preview: true })
+    var reply = { chat_id: chatId, text: hello, disable_web_page_preview: true };
+    /* Кнопка открывает тот же сайт как Mini App. Требует, чтобы домен был
+       привязан к боту: @BotFather → /mybots → Bot Settings → Domain. */
+    if (CONFIG.publicUrl) {
+      reply.reply_markup = {
+        inline_keyboard: [[{ text: "🛠 Собрать наклейку", web_app: { url: CONFIG.publicUrl } }]]
+      };
+    }
+    return tgCall("sendMessage", reply)
       .catch(function () { /* клиент мог заблокировать бота */ });
   }
   if (text.indexOf("/id") === 0) {
@@ -366,7 +483,30 @@ var server = http.createServer(function (req, res) {
       dry_run: CONFIG.dryRun,
       token: Boolean(CONFIG.botToken),
       moderator: Boolean(CONFIG.moderatorId),
-      poll: CONFIG.poll
+      poll: updates.mode === "poll",
+      updates: updates.mode,
+      order_path: CONFIG.dryRun ? "лог (тестовый режим)" : "телеграм модератору"
+    });
+    return;
+  }
+
+  /* Проверка бота «по требованию»: показывает, жив ли токен и видит ли сервер
+     Telegram. Секретов не раскрывает — только ok/ошибку. */
+  if (pathname === "/api/tg-check") {
+    if (!CONFIG.botToken) {
+      sendJson(res, 200, { ok: false, error: "BOT_TOKEN не задан" });
+      return;
+    }
+    tgCall("getMe", {}).then(function (data) {
+      sendJson(res, 200, {
+        ok: Boolean(data && data.ok),
+        bot: data && data.ok && data.result ? "@" + (data.result.username || data.result.id) : null,
+        error: data && data.ok ? null : ((data && data.description) || "нет ответа Telegram"),
+        dry_run: CONFIG.dryRun,
+        updates: updates.mode
+      });
+    }).catch(function (error) {
+      sendJson(res, 200, { ok: false, error: "api.telegram.org недоступен: " + error.message });
     });
     return;
   }
@@ -435,8 +575,11 @@ function pollLoop() {
             handleUpdate(update).catch(function () { /* одна ошибка не должна ронять цикл */ });
           });
         } else if (data && !data.ok) {
-          console.error("[poll] Telegram ответил ошибкой: " + (data.description || "?"));
-          return sleep(5000);
+          console.error("[poll] Telegram ответил ошибкой: " + (data.description || "?") +
+            (data.error_code === 409
+              ? " → у бота уже установлен вебхук или запущен второй сервер: отключите одно из двух"
+              : ""));
+          return sleep(15000);
         }
       })
       .catch(function (error) {
@@ -556,47 +699,28 @@ function selftest() {
    7. ТОЧКА ВХОДА
    ------------------------------------------------------------------------ */
 
-var args = process.argv.slice(2);
-
-if (args.indexOf("--selftest") !== -1) {
-  selftest();
-} else if (args.indexOf("--send-test") !== -1) {
-  if (CONFIG.dryRun) {
-    console.log("Токен или MODERATOR_ID не заданы (или DRY_RUN=1) — отправлять нечего.");
-    process.exit(1);
-  }
-  sendToModerator("🔔 <b>Проверка связи</b>\nСервер наклеек на месте, заявки будут приходить сюда.").then(function (result) {
-    console.log(result.ok ? "Тестовое сообщение отправлено ✅" : "Не отправлено: " + result.error);
-    process.exit(result.ok ? 0 : 1);
-  });
-} else if (args.indexOf("--webhook") !== -1) {
-  var target = args[args.indexOf("--webhook") + 1];
-  if (!target) { console.log("Укажите адрес: node server.js --webhook https://example.com/api/tg-webhook"); process.exit(1); }
-  tgCall("setWebhook", {
-    url: target,
-    secret_token: CONFIG.webhookSecret || undefined,
-    allowed_updates: ["message"],
-    drop_pending_updates: true
-  }).then(function (data) {
-    console.log(data && data.ok ? "Вебхук установлен ✅" : "Ошибка: " + ((data && data.description) || "?"));
-    process.exit(data && data.ok ? 0 : 1);
-  });
-} else if (args.indexOf("--unwebhook") !== -1) {
-  tgCall("deleteWebhook", { drop_pending_updates: true }).then(function (data) {
-    console.log(data && data.ok ? "Вебхук удалён ✅" : "Ошибка: " + ((data && data.description) || "?"));
-    process.exit(data && data.ok ? 0 : 1);
-  });
-} else {
-  if (args.indexOf("--poll") !== -1) CONFIG.poll = true;
-
+/* Запуск сервера: сначала проверяем бота и решаем, как принимаем обновления,
+   потом слушаем порт. Так в логе сразу видно, дойдут ли заявки до менеджера. */
+function startServer() {
   server.listen(CONFIG.port, CONFIG.host, function () {
     console.log("Наклейки: сервер запущен на http://" + CONFIG.host + ":" + CONFIG.port);
-    console.log("Режим: " + (CONFIG.dryRun ? "ТЕСТОВЫЙ (заявки только в лог, Telegram не трогаем)" : "боевой — заявки уходят модератору " + CONFIG.moderatorId));
+    console.log("Режим: " + (CONFIG.dryRun
+      ? "ТЕСТОВЫЙ (заявки только в лог, Telegram не трогаем)"
+      : "боевой — заявки уходят модератору " + CONFIG.moderatorId));
     if (CONFIG.dryRun && CONFIG.botToken && CONFIG.moderatorId) {
       console.log("Чтобы включить реальную отправку: DRY_RUN=0 в .env");
     }
-    if (!CONFIG.botToken) console.log("BOT_TOKEN не задан — заполните .env (см. .env.example)");
-    if (CONFIG.poll) pollLoop();
+
+    botDiagnostics().then(registerWebhook).then(resolveUpdatesMode).then(function (mode) {
+      if (mode.mode === "poll") {
+        console.log("Обновления: слушаю getUpdates (" + mode.reason + ") — заказы из Mini App придут сюда");
+        pollLoop();
+      } else if (mode.mode === "webhook") {
+        console.log("Обновления: вебхук " + mode.url + " — следите, чтобы он смотрел на /api/tg-webhook");
+      } else {
+        console.log("Обновления: не принимаю (" + (mode.reason || "POLL=0") + ") — заказы, отправленные из Mini App через tg.sendData, потеряются");
+      }
+    });
   });
 
   server.on("error", function (error) {
@@ -613,3 +737,62 @@ if (args.indexOf("--selftest") !== -1) {
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 }
+
+function main() {
+  var args = process.argv.slice(2);
+
+  if (args.indexOf("--selftest") !== -1) {
+    selftest();
+  } else if (args.indexOf("--send-test") !== -1) {
+    if (CONFIG.dryRun) {
+      console.log("Токен или MODERATOR_ID не заданы (или DRY_RUN=1) — отправлять нечего.");
+      process.exit(1);
+    }
+    botDiagnostics().then(function () {
+      return sendToModerator("🔔 <b>Проверка связи</b>\nСервер наклеек на месте, заявки будут приходить сюда.");
+    }).then(function (result) {
+      console.log(result.ok ? "Тестовое сообщение отправлено ✅" : "Не отправлено: " + result.error);
+      process.exit(result.ok ? 0 : 1);
+    });
+  } else if (args.indexOf("--webhook") !== -1) {
+    var target = args[args.indexOf("--webhook") + 1];
+    if (!target) { console.log("Укажите адрес: node server.js --webhook https://example.com/api/tg-webhook"); process.exit(1); }
+    tgCall("setWebhook", {
+      url: target,
+      secret_token: CONFIG.webhookSecret || undefined,
+      allowed_updates: ["message"],
+      drop_pending_updates: true
+    }).then(function (data) {
+      console.log(data && data.ok ? "Вебхук установлен ✅" : "Ошибка: " + ((data && data.description) || "?"));
+      process.exit(data && data.ok ? 0 : 1);
+    });
+  } else if (args.indexOf("--unwebhook") !== -1) {
+    tgCall("deleteWebhook", { drop_pending_updates: true }).then(function (data) {
+      console.log(data && data.ok ? "Вебхук удалён ✅" : "Ошибка: " + ((data && data.description) || "?"));
+      process.exit(data && data.ok ? 0 : 1);
+    });
+  } else {
+    if (args.indexOf("--poll") !== -1) CONFIG.poll = "1";
+    startServer();
+  }
+}
+
+/* Экспорт нужен тестам (tests/e2e.js): они подменяют Telegram заглушкой
+   и проверяют, что заявка действительно уходит модератору. */
+module.exports = {
+  CONFIG: CONFIG,
+  updates: function () { return updates; },
+  server: server,
+  startServer: startServer,
+  pollLoop: pollLoop,
+  acceptOrder: acceptOrder,
+  handleUpdate: handleUpdate,
+  verifyInitData: verifyInitData,
+  sendToModerator: sendToModerator,
+  telegramHint: telegramHint,
+  tgCall: tgCall,
+  newOrderId: newOrderId,
+  money: P.money
+};
+
+if (require.main === module) main();

@@ -2,13 +2,20 @@
   "name": "artmoto23-stickers",
   "version": "2.0.0",
   "private": true,
-  "description": "Сайт-конструктор наклеек ORACAL: расчёт цены и приём заказов в Telegram-бота",
+  "description": "Сайт-конструктор наклеек ORACAL: расчёт цены и приём заказов в Telegram — сервером или ботом без хостинга",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node server.js --selftest",
+    "bot": "node bot.js",
+    "test": "node server.js --selftest && node bot.js --selftest && node tests/e2e.js && node tests/bot.js && node tests/panel.js && node tests/admin.js && node tests/templates.js",
+    "test:server": "node server.js --selftest && node tests/e2e.js",
+    "test:bot": "node bot.js --selftest && node tests/bot.js",
+    "test:e2e": "node tests/e2e.js",
     "poll": "node server.js --poll",
-    "send-test": "node server.js --send-test"
+    "send-test": "node server.js --send-test",
+    "test:panel": "node tests/panel.js",
+    "test:admin": "node tests/admin.js",
+    "test:templates": "node tests/templates.js"
   },
   "engines": {
     "node": ">=18"

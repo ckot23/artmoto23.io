@@ -7,10 +7,18 @@
 <meta name="color-scheme" content="dark light"/>
 <meta name="theme-color" content="#0E1012"/>
 <meta name="description" content="Наклейки любого размера на немецкой плёнке ORACAL — от 1 см до 5 м. Онлайн-расчёт цены, макет и заказ за 30 секунд."/>
-<!-- Адрес API приёма заказов. Пусто — тот же домен, что и сайт (api/order).
-     Если сайт лежит на GitHub Pages, а сервер заказов на другом домене,
-     укажите здесь полный адрес: <meta name="api-base" content="https://api.example.com"> -->
+<!-- Адрес API приёма заказов (сервер server.js) — нужен, только если вы
+     развернули сервер. Если сервера нет (сайт живёт на одном GitHub Pages),
+     оставьте пустым: заявку примет бот — см. meta tg-bot ниже.
+     Пример: <meta name="api-base" content="https://artmoto23-orders.onrender.com"> -->
 <meta name="api-base" content=""/>
+
+<!-- Юзернейм бота приёма заявок (без @), например ckot23_orders_bot.
+     Если он указан, кнопка «Отправить заявку боту» подаёт боту команду
+     /start с данными заявки, а бот пересылает её модератору.
+     Заявки без сервера приходят с задержкой до ~5 минут (расписание GitHub
+     Actions), поэтому кнопка «Написать менеджеру» остаётся рядом. -->
+<meta name="tg-bot" content=""/>
 <title>Наклейки на заказ — ORACAL</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF6B2C'/%3E%3Cpath d='M20 34c0-8 6-14 14-14h10v10c0 8-6 14-14 14H20z' fill='%230E1012'/%3E%3C/svg%3E"/>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1096,6 +1104,38 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
    9.1 ВКЛАДКИ «КОНСТРУКТОР / ОСТАВИТЬ ЗАКАЗ»
    ========================================================================= */
 
+/* — галерея шаблонов — */
+.gallery { margin: 0 0 26px; }
+.gallery__head { margin: 0 0 14px; }
+.gallery__title { margin: 0 0 6px; font-size: 22px; letter-spacing: -.01em; }
+.gallery__lead { margin: 0; max-width: 720px; color: var(--text-2); font-size: 14px; line-height: 1.5; }
+.gallery__grid {
+  display: grid; gap: 14px; margin: 0; padding: 0; list-style: none;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+}
+.gallery__card { margin: 0; }
+.gallery__btn {
+  display: block; width: 100%; padding: 0; overflow: hidden; cursor: pointer; text-align: left;
+  background: var(--surface); color: var(--text); border: 1px solid var(--line);
+  border-radius: var(--radius); transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.gallery__btn:hover { transform: translateY(-2px); border-color: var(--accent-line); box-shadow: var(--sh-accent); }
+.gallery__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gallery__photo {
+  display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  background: var(--surface-3); border-bottom: 1px solid var(--line);
+}
+.gallery__body { padding: 10px 12px 12px; }
+.gallery__name { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; }
+.gallery__note { margin: 4px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.4; }
+.gallery__meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.gallery__tag {
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.gallery__price { margin: 8px 0 0; font-size: 14px; font-weight: 700; color: var(--accent); }
+.gallery__hint { margin: 10px 0 0; color: var(--text-3); font-size: 12px; }
+
 .tabs {
   position: sticky;
   top: 0;
@@ -1404,8 +1444,25 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
           <a class="seller-link seller-link--primary" href="https://t.me/ckot_23" target="_blank" rel="noopener">Telegram · @ckot_23</a>
           <a class="seller-link" href="mailto:andreydragon22813@gmail.com">andreydragon22813@gmail.com</a>
         </div>
+        <!-- Служебная ссылка для владельца: вход в админку по паролю.
+             Внутри — панель бота (приём заявок прямо в браузере, без хостинга)
+             и настройки. Пароль и токен хранятся только на устройстве владельца. -->
+        <p class="note"><a href="admin.html" rel="nofollow">Меню админа</a> — для владельца: вход по паролю,
+          внутри приём заявок и настройки бота.</p>
       </div>
     </article>
+  </section>
+
+  <!-- ======================= ГАЛЕРЕЯ ШАБЛОНОВ =======================
+       Шаблоны ведёт владелец: фото и настройки лежат в templates/catalog.js
+       (папка templates/img). Пока каталог пуст, секции на сайте нет. -->
+  <section class="gallery" id="gallery" aria-labelledby="gallery-title" hidden>
+    <div class="gallery__head">
+      <h2 class="gallery__title" id="gallery-title">Готовые шаблоны</h2>
+      <p class="gallery__lead">Понравился пример — нажмите на него, и материал, размер, цвет и тираж
+        подставятся в конструктор. Дальше меняйте что угодно: цена пересчитается.</p>
+    </div>
+    <ul class="gallery__grid" id="gallery-grid"></ul>
   </section>
 
   <!-- ======================= КАЛЬКУЛЯТОР ======================= -->
@@ -1603,6 +1660,20 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
           <p class="note note--error" id="order-error" hidden></p>
 
+          <!-- Запасной путь без сервера: сайт лежит на статическом хостинге
+               (GitHub Pages), поэтому заявку несёт в Telegram сам посетитель:
+               боту командой /start или менеджеру готовым текстом. -->
+          <div class="order__actions" id="order-fallback" hidden>
+            <a class="btn btn--primary btn--wide" id="order-bot-send" hidden
+               href="#" target="_blank" rel="noopener">Отправить заявку боту</a>
+            <a class="btn btn--secondary btn--wide" id="order-fallback-share" hidden
+               href="#" target="_blank" rel="noopener">Поделиться заявкой в Telegram</a>
+            <a class="btn btn--ghost btn--wide" id="order-fallback-send"
+               href="https://t.me/ckot_23" target="_blank" rel="noopener">Написать менеджеру @ckot_23</a>
+            <button class="btn btn--ghost btn--wide" id="order-fallback-copy" type="button">Скопировать текст заявки</button>
+          </div>
+          <p class="note" id="order-fallback-hint" hidden></p>
+
           <div class="order__actions">
             <button class="btn btn--primary btn--wide" id="order-send" type="button">Отправить заказ</button>
             <button class="btn btn--ghost btn--wide" id="order-edit" type="button">Вернуться к конструктору</button>
@@ -1654,6 +1725,9 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   <p style="padding:24px;text-align:center">Для расчёта цены нужен включённый JavaScript. Напишите нам: <a href="https://t.me/ckot_23" style="color:var(--accent)">@ckot_23</a></p>
 </noscript>
 
+<!-- Галерея шаблонов: каталог и фото ведёт владелец из меню админа. -->
+<script src="templates.js"></script>
+<script src="templates/catalog.js"></script>
 <script>
 /* ============================================================================
    Telegram Mini App «Наклейки на заказ»
@@ -1811,17 +1885,20 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     return 1;
   }
 
-  function calculate() {
-    var film = byId(FILMS, state.film);
-    var design = byId(DESIGNS, state.design);
-    var area = state.width * state.height;
-    var colorMult = COLOR_MULT[state.color] || 1;
+  /* Без аргумента считаем текущий заказ; с аргументом — настройки шаблона
+     из галереи, чтобы цена на карточке была из того же прайса. */
+  function calculate(config) {
+    var order = config || state;
+    var film = byId(FILMS, order.film);
+    var design = byId(DESIGNS, order.design);
+    var area = order.width * order.height;
+    var colorMult = COLOR_MULT[order.color] || 1;
     var rawUnit = area * film.rate * design.mult * colorMult;
     var unit = Math.max(0, Math.round(rawUnit / 5) * 5);
-    var discount = quantityMultiplier(state.quantity);
+    var discount = quantityMultiplier(order.quantity);
     var total = Math.max(
       MIN_ORDER_PRICE,
-      Math.round(unit * state.quantity * discount / 5) * 5 + design.setup
+      Math.round(unit * order.quantity * discount / 5) * 5 + design.setup
     );
     return {
       unit: unit,
@@ -1911,11 +1988,16 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     valueSize: $("value-size"), valueQty: $("value-qty"), valueContact: $("value-contact"),
     blockFilm: $("block-film"), blockDesign: $("block-design"), blockColor: $("block-color"),
     blockSize: $("block-size"), blockQty: $("block-qty"), blockContact: $("block-contact"),
+    /* галерея шаблонов */
+    gallery: $("gallery"), galleryGrid: $("gallery-grid"),
     /* вкладки и оформление заказа */
     tabs: $("tabs"), tabBuilder: $("tab-builder"), tabOrder: $("tab-order"),
     tabOrderBadge: $("tab-order-badge"),
     panelBuilder: $("panel-builder"), panelOrder: $("panel-order"),
     orderForm: $("order-form"), orderSend: $("order-send"), orderError: $("order-error"),
+    orderFallback: $("order-fallback"), orderFallbackSend: $("order-fallback-send"),
+    orderFallbackShare: $("order-fallback-share"), orderFallbackCopy: $("order-fallback-copy"),
+    orderFallbackHint: $("order-fallback-hint"), orderBotSend: $("order-bot-send"),
     orderSummary: $("order-summary"), orderTotal: $("order-total"),
     orderSuccess: $("order-success"), orderSuccessId: $("order-success-id"),
     orderSuccessText: $("order-success-text"),
@@ -2828,10 +2910,33 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
   /* Куда отправлять заявку. По умолчанию — тот же домен (см. meta api-base). */
   function apiUrl(endpoint) {
-    var meta = document.querySelector('meta[name="api-base"]');
-    var base = meta && meta.content ? meta.content.trim().replace(/\/+$/, "") : "";
-    return base + "/" + String(endpoint).replace(/^\/+/, "");
+    return apiBaseConfigured() + "/" + String(endpoint).replace(/^\/+/, "");
   }
+
+  function apiBaseConfigured() {
+    var meta = document.querySelector('meta[name="api-base"]');
+    return meta && meta.content ? meta.content.trim().replace(/\/+$/, "") : "";
+  }
+
+  /* Если сайт открыт не сервером заявок, а api-base не заполнен, заявки будут
+     уходить «в свой же домен» и теряться. Предупреждаем владельца в консоли —
+     но молчим, если настроен бот: он заявку примет. */
+  (function warnAboutApiBase() {
+    var meta = document.querySelector('meta[name="api-base"]');
+    var configured = !!(meta && meta.content && meta.content.trim());
+    if (configured) return;
+    var botMeta = document.querySelector('meta[name="tg-bot"]');
+    if (botMeta && botMeta.content && botMeta.content.trim()) return;
+    var host = location.hostname;
+    var sameOriginServer = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(host) ||
+      host.indexOf("onrender.com") !== -1 || host.indexOf("railway.app") !== -1 ||
+      host.indexOf("fly.dev") !== -1 || host.indexOf("herokuapp.com") !== -1;
+    if (sameOriginServer) return;
+    if (window.console && console.warn) {
+      console.warn("Заявки не уйдут: сайт открыт на " + host +
+        ", а <meta name=\"api-base\"> пустой. Укажите адрес сервера заявок в index.html.");
+    }
+  })();
 
   function orderPayload() {
     return {
@@ -2855,8 +2960,182 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     el.orderError.hidden = !message;
     setText(el.orderError, message || "");
     orderErrorKind = message ? (kind || "field") : null;
+    /* Кнопки ручной отправки нужны только при ошибке связи. */
+    if (!message) el.orderFallback.hidden = true;
     if (message && kind !== "silent") toast(message, "error");
   }
+
+  /* --------------------------------------------------------------------------
+     ЗАПАСНОЙ ПУТЬ БЕЗ СЕРВЕРА
+     Сайт лежит на статическом хостинге (GitHub Pages) — Node-сервера рядом нет,
+     POST /api/order отвечает 404 страницей, а tg.sendData() работает только
+     внутри Telegram и только если где-то запущен сам бот. Тогда единственный
+     надёжный путь — открыть чат с менеджером с уже готовым текстом заявки.
+     ---------------------------------------------------------------------- */
+
+  var MANAGER_TG = "https://t.me/ckot_23";
+
+  /* --------------------------------------------------------------------------
+     ССЫЛКА НА БОТА
+
+     Telegram разрешает в «t.me/бот?start=…» не больше 64 символов base64url —
+     это 48 байт. Поэтому заявка упаковывается в компактную строку
+     1|m|o|k|r|10|10|10|Пётр|Рига, СДЭК, а лишнее (комментарий) бот спросит
+     в чате. Разбор на стороне бота — orderlink.js; совпадение форматов
+     проверяет npm test («сайт → бот»).
+     ---------------------------------------------------------------------- */
+
+  function botUsername() {
+    var meta = document.querySelector('meta[name="tg-bot"]');
+    return meta && meta.content ? meta.content.trim().replace(/^@/, "") : "";
+  }
+
+  /* Упаковка заявки в параметр ?start= (не больше 64 символов). */
+  function packStart(order) {
+    var CODES = {
+      film: { matte: "m", gloss: "g", transparent: "t", metallic: "M", reflective: "r" },
+      design: { own: "o", text: "t", logo: "l", catalog: "c" },
+      color: { black: "k", white: "w", red: "r", blue: "b", green: "g", yellow: "y", orange: "o", silver: "s", gold: "z", fullcolor: "f" },
+      shape: { rectangle: "r", rounded: "d", circle: "c" }
+    };
+    function bytes(s) { return new TextEncoder().encode(s).length; }
+    function cut(s, max) {
+      var out = "";
+      for (var i = 0; i < s.length; i++) {
+        var next = out + s.charAt(i);
+        if (bytes(next) > max) break;
+        out = next;
+      }
+      return out;
+    }
+    function tidy(v) {
+      return String(v == null ? "" : v).replace(/[\r\n\t]+/g, " ").replace(/\|/g, "/").replace(/\s+/g, " ").trim();
+    }
+    function numeral(v) {
+      var n = Number(v);
+      return isFinite(n) ? String(Math.round(n * 10) / 10) : "0";
+    }
+    var parts = [
+      "1",
+      CODES.film[order.film] || "m", CODES.design[order.design] || "o",
+      CODES.color[order.color] || "k", CODES.shape[order.shape] || "r",
+      numeral(order.w), numeral(order.h), numeral(order.qty)
+    ];
+    var budget = 48 - bytes(parts.join("|") + "|");
+    var tail = [tidy(order.name), tidy(order.delivery), tidy(order.comment)];
+    for (var i = 0; i < tail.length && budget > 0; i++) {
+      if (!tail[i]) { parts.push(""); budget -= 1; continue; }
+      var room = budget - 1;
+      var fits = bytes(tail[i]) <= room;
+      var piece = fits ? tail[i] : cut(tail[i], room);
+      if (!piece || (!fits && bytes(piece) < 8)) break;      /* обрывок бесполезен */
+      parts.push(piece);
+      budget -= 1 + bytes(piece);
+    }
+    while (parts.length > 8 && parts[parts.length - 1] === "") parts.pop();
+    var text = parts.join("|");
+    if (bytes(text) > 48) text = cut(text, 48);
+    /* base64url внутрь: функция должна быть самодостаточной — её целиком
+       вытаскивает и проверяет npm run test:bot */
+    var utf8 = new TextEncoder().encode(text);
+    var binary = "";
+    for (var j = 0; j < utf8.length; j++) binary += String.fromCharCode(utf8[j]);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  function base64urlText(text) {
+    var utf8 = new TextEncoder().encode(text);
+    var binary = "";
+    for (var i = 0; i < utf8.length; i++) binary += String.fromCharCode(utf8[i]);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  function orderBotLink(payload) {
+    return "https://t.me/" + botUsername() + "?start=" + packStart(payload);
+  }
+
+  /* Полная заявка (включая комментарий) — сообщением через «Поделиться». */
+  function orderShareLink(payload) {
+    var text = orderPlainText(payload) + "\n\n" + "#STICKERS:" + base64urlText(JSON.stringify(payload));
+    return "https://t.me/share/url?url=" + encodeURIComponent(location.origin + location.pathname) +
+      "&text=" + encodeURIComponent(text);
+  }
+
+  /* Тот же текст, что сервер отправляет модератору, но простым текстом. */
+  function orderPlainText(payload) {
+    var film = byId(FILMS, payload.film);
+    var design = byId(DESIGNS, payload.design);
+    var color = byId(COLORS, payload.color);
+    var lines = ["Заявка с сайта", ""];
+    lines.push("Имя: " + payload.name);
+    lines.push("Контакт: " + payload.contact);
+    if (payload.delivery) lines.push("Получение: " + payload.delivery);
+    lines.push("");
+    lines.push("Материал: " + film.name);
+    lines.push("Дизайн: " + design.name);
+    lines.push("Цвет: " + color.name);
+    lines.push("Форма: " + (SHAPE_NAMES[payload.shape] || SHAPE_NAMES.rectangle));
+    lines.push("Размер: " + trimNum(payload.w) + " × " + trimNum(payload.h) + " см");
+    lines.push("Тираж: " + payload.qty + " шт");
+    lines.push("Итого на сайте: " + money(payload.client_total));
+    if (payload.comment) {
+      lines.push("");
+      lines.push("Комментарий: " + payload.comment);
+    }
+    return lines.join("\n");
+  }
+
+  function telegramOrderLink(payload) {
+    return MANAGER_TG + "?text=" + encodeURIComponent(orderPlainText(payload));
+  }
+
+  function showTelegramFallback(payload, message) {
+    var bot = botUsername();
+    showOrderError(bot
+      ? "Заявку можно отправить прямо сейчас: её передаст бот (кнопка ниже)."
+      : message, "network");
+    el.orderBotSend.hidden = !bot;
+    el.orderFallbackShare.hidden = !bot;
+    el.orderFallbackSend.setAttribute("href", telegramOrderLink(payload));
+    if (bot) {
+      el.orderBotSend.setAttribute("href", orderBotLink(payload));
+      el.orderFallbackShare.setAttribute("href", orderShareLink(payload));
+      setText(el.orderFallbackHint, "Кнопка «Отправить заявку боту» открывает чат с @" + bot +
+        " — нажмите там «ЗАПУСТИТЬ», и бот передаст заявку менеджеру. Бот отвечает с задержкой " +
+        "до 5 минут, поэтому если нужно срочно — напишите менеджеру.");
+    } else {
+      setText(el.orderFallbackHint, "Заявка в Telegram отправляется вашим сообщением: " +
+        "текст уже подставлен, останется нажать «Отправить».");
+    }
+    el.orderFallbackHint.hidden = false;
+    el.orderFallback.hidden = false;
+  }
+
+  /* Внутри Telegram t.me-ссылку открываем штатным способом — иначе клиент
+     может не пустить внешний переход. */
+  [el.orderBotSend, el.orderFallbackShare, el.orderFallbackSend].forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      if (!insideTelegram() || !tg.openTelegramLink) return;
+      event.preventDefault();
+      try {
+        tg.openTelegramLink(link.getAttribute("href"));
+      } catch (e) {
+        window.open(link.getAttribute("href"), "_blank", "noopener");
+      }
+    });
+  });
+
+  el.orderFallbackCopy.addEventListener("click", function () {
+    var text = orderPlainText(orderPayload());
+    var button = this;
+    function done() {
+      setText(button, "Текст скопирован");
+      window.setTimeout(function () { setText(button, "Скопировать текст заявки"); }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else done();
+  });
 
   function fieldForError(error) {
     if (error.indexOf("Ширина") === 0) return el.width;
@@ -2879,8 +3158,8 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
 
     if (viaBot) {
       el.orderSuccessId.hidden = true;
-      setText(el.orderSuccessText, "Заявка ушла боту в Telegram. Менеджер ответит вам в " +
-        contactKind(state.contact) + ".");
+      setText(el.orderSuccessText, "Заявка ушла боту в Telegram. Ответ придёт в этот чат — " +
+        "обычно в течение 5 минут. Если ответа не будет — напишите @ckot_23.");
     } else {
       el.orderSuccessId.hidden = false;
       setText(el.orderSuccessId, "Заказ №" + result.order_id);
@@ -2899,9 +3178,14 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }
 
-  /* Заявка через бота внутри Mini App — если HTTP-сервер недоступен. */
+  /* Заявка через бота внутри Mini App — если HTTP-сервер недоступен.
+
+     Важно: снаружи Telegram скрипт telegram-web-app.js тоже создаёт объект
+     WebApp, а sendData() там просто уходит в никуда и не бросает ошибку
+     (см. insideTelegram()). Если вызвать его в обычном браузере, посетитель
+     увидит «заявка отправлена», а заявка пропадёт — поэтому проверяем окно. */
   function sendViaMiniApp(payload) {
-    if (!tg || typeof tg.sendData !== "function") return false;
+    if (!insideTelegram() || !tg || typeof tg.sendData !== "function") return false;
     try {
       tg.sendData(JSON.stringify(payload));
       orderSent({ mini_app: true });
@@ -2942,6 +3226,13 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
     showOrderError("");
 
     var payload = orderPayload();
+
+    /* Внутри Telegram и без сервера заявок: не ждём 404 от статического
+       хостинга, а сразу отдаём заявку боту. */
+    if (insideTelegram() && !apiBaseConfigured()) {
+      if (sendViaMiniApp(payload)) return;
+    }
+
     submitting = true;
     paintSubmit();
 
@@ -2957,14 +3248,37 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
       )),
       signal: controller ? controller.signal : undefined
     })
-      .then(function (response) { return response.json().catch(function () { return {}; }); })
-      .then(function (data) {
+      .then(function (response) {
+        /* Читаем телом, а не response.json(): статический хостинг (GitHub Pages)
+           отвечает на /api/order HTML-страницей 404, и это не должно выглядеть
+           как «заявка ушла». */
+        return response.text().then(function (bodyText) {
+          var data = null;
+          try { data = JSON.parse(bodyText); } catch (e) { data = null; }
+          return { status: response.status, data: data };
+        });
+      })
+      .then(function (reply) {
         window.clearTimeout(timer);
         submitting = false;
         paintSubmit();
-        if (data && data.ok) { orderSent(data); return; }
+        if (reply.data && reply.data.ok) { orderSent(reply.data); return; }
+
+        /* Сервер ответил и объяснил причину (недействительный токен бота,
+           модератор не получает сообщения и т. п.) — заявка до сервера дошла,
+           но менеджеру не ушла. Говорим об этом честно, а не «всё отправлено». */
+        if (reply.data && reply.data.error) {
+          if (sendViaMiniApp(payload)) return;
+          showTelegramFallback(payload, reply.data.error);
+          hapticNotify("error");
+          return;
+        }
+
+        /* Ответ не от нашего сервера: сайт открыт на статическом хостинге,
+           а api-base не указан. Запасной путь — только внутри Telegram. */
         if (sendViaMiniApp(payload)) return;
-        showOrderError((data && data.error) || "Не удалось отправить заказ. Напишите нам: @ckot_23", "network");
+        showTelegramFallback(payload, "Сервер заявок не отвечает (HTTP " + reply.status +
+          "). Отправьте заявку в Telegram — текст уже готов:");
         hapticNotify("error");
       })
       .catch(function () {
@@ -2972,7 +3286,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
         submitting = false;
         paintSubmit();
         if (sendViaMiniApp(payload)) return;
-        showOrderError("Нет связи с сервером. Попробуйте ещё раз или напишите в Telegram @ckot_23", "network");
+        showTelegramFallback(payload, "Нет связи с сервером заявок. Отправьте заявку в Telegram — текст уже готов:");
         hapticNotify("error");
       });
   }
@@ -3024,6 +3338,128 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   }
 
   /* ==========================================================================
+     ГАЛЕРЕЯ ШАБЛОНОВ
+     Шаблоны приходят с сайта (templates/catalog.js), фото — из templates/img.
+     Каталог пуст → секции на странице нет вовсе, битых карточек не бывает.
+     ====================================================================== */
+
+  var templates = [];
+  var templateById = {};
+
+  function templateTags(config) {
+    var film = byId(FILMS, config.film);
+    var color = byId(COLORS, config.color);
+    return [
+      film.name,
+      color.name,
+      trimNum(config.width) + " × " + trimNum(config.height) + " см",
+      config.quantity + " шт"
+    ];
+  }
+
+  function buildTemplateCard(item) {
+    var li = document.createElement("li");
+    li.className = "gallery__card";
+
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "gallery__btn";
+    button.dataset.template = item.id;
+    button.setAttribute("aria-label", item.title + " — подставить в конструктор");
+
+    var img = document.createElement("img");
+    img.className = "gallery__photo";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.alt = item.title;
+    /* Версия в адресе: после публикации фото в GitHub Pages не залипает в кэше. */
+    img.src = item.img + (item.img.indexOf("data:") === 0 ? "" : "?v=" + encodeURIComponent(item.created));
+    /* Файл не доехал — карточку не показываем: битой картинки клиент не увидит. */
+    img.addEventListener("error", function () {
+      li.remove();
+      if (!el.galleryGrid.children.length) el.gallery.hidden = true;
+    });
+
+    var body = document.createElement("div");
+    body.className = "gallery__body";
+    var name = document.createElement("p");
+    name.className = "gallery__name";
+    name.textContent = item.title;
+    body.appendChild(name);
+
+    if (item.note) {
+      var note = document.createElement("p");
+      note.className = "gallery__note";
+      note.textContent = item.note;
+      body.appendChild(note);
+    }
+
+    var meta = document.createElement("div");
+    meta.className = "gallery__meta";
+    templateTags(item.settings).forEach(function (tag) {
+      var chip = document.createElement("span");
+      chip.className = "gallery__tag";
+      chip.textContent = tag;
+      meta.appendChild(chip);
+    });
+    body.appendChild(meta);
+
+    var price = calculate(item.settings);
+    var priceNode = document.createElement("p");
+    priceNode.className = "gallery__price";
+    priceNode.textContent = money(price.total) + " за " + item.settings.quantity + " шт";
+    body.appendChild(priceNode);
+
+    button.appendChild(img);
+    button.appendChild(body);
+    li.appendChild(button);
+    return li;
+  }
+
+  function paintGallery() {
+    if (!el.gallery || !el.galleryGrid) return;
+    if (!templates.length) { el.gallery.hidden = true; return; }
+
+    var frag = document.createDocumentFragment();
+    templates.forEach(function (item) { frag.appendChild(buildTemplateCard(item)); });
+    el.galleryGrid.textContent = "";
+    el.galleryGrid.appendChild(frag);
+    el.gallery.hidden = false;
+  }
+
+  /* Клик по шаблону = готовый заказ: подставляем настройки в конструктор. */
+  function applyTemplate(item) {
+    ["film", "design", "color", "shape", "width", "height", "quantity"].forEach(function (key) {
+      set(key, item.settings[key]);
+    });
+    if (!state.comment.trim()) set("comment", "Хочу как на шаблоне: " + item.title);
+    el.galleryGrid.dataset.active = item.id;
+    toast("Шаблон «" + item.title + "» подставлен", "ok");
+  }
+
+  function initGallery() {
+    if (!window.Templates) return;
+    templates = window.Templates.catalogFromGlobal().map(function (item) {
+      return { id: item.id, title: item.title, note: item.note, img: item.img,
+        created: item.created, settings: item.settings };
+    });
+    templates.forEach(function (item) { templateById[item.id] = item; });
+    paintGallery();
+
+    if (el.galleryGrid) {
+      el.galleryGrid.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-template]");
+        if (!button) return;
+        var item = templateById[button.dataset.template];
+        if (!item) return;
+        applyTemplate(item);
+        showTab("builder", { scroll: true });
+        haptic();
+      });
+    }
+  }
+
+  /* ==========================================================================
      СТАРТ
      ====================================================================== */
 
@@ -3032,6 +3468,7 @@ body.has-mainbutton .pricebar__value { font-size: 24px; }
   buildColors();
   buildSizes();
   buildQuantities();
+  initGallery();
 
   applyRotation();
   applyTheme(readTheme());

@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta name="color-scheme" content="dark light"/>
+<meta name="robots" content="noindex"/>
+<title>Меню админа — Наклейки на заказ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF6B2C'/%3E%3Cpath d='M22 30v-5a10 10 0 0 1 20 0v5h-4v-5a6 6 0 0 0-12 0v5z' fill='%230E1012'/%3E%3Crect x='18' y='30' width='28' height='20' rx='4' fill='%230E1012'/%3E%3C/svg%3E"/>
+<style>
+:root {
+  --bg: #0E1012; --surface: #16191C; --surface-2: #1D2125; --line: rgba(255,255,255,.09);
+  --text: #F4F5F6; --text-2: rgba(244,245,246,.70); --text-3: rgba(244,245,246,.5);
+  --accent: #FF6B2C; --ok: #3FCF8E; --danger: #FF6B6B; --warn: #F2C31B;
+  --radius: 16px; --radius-sm: 10px;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #F6F7F8; --surface: #FFFFFF; --surface-2: #EFF1F3; --line: rgba(0,0,0,.10);
+    --text: #14171A; --text-2: rgba(20,23,26,.72); --text-3: rgba(20,23,26,.5); }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 20px 16px 60px; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.wrap { max-width: 680px; margin: 0 auto; }
+h1 { font-size: 24px; margin: 0 0 6px; }
+h2 { font-size: 17px; margin: 22px 0 10px; }
+p { margin: 0 0 12px; color: var(--text-2); }
+a { color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 14px 0; }
+label { display: block; margin: 0 0 12px; }
+.label { display: block; font-size: 13px; color: var(--text-2); margin-bottom: 6px; }
+input[type="text"], input[type="password"] {
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2);
+  border: 1.5px solid var(--line); color: var(--text); font-size: 15px; font-family: inherit;
+}
+input:focus { outline: none; border-color: var(--accent); }
+button { padding: 12px 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent; cursor: pointer;
+  font-size: 15px; font-weight: 600; font-family: inherit; background: var(--surface-2); color: var(--text); }
+button.primary { background: var(--accent); color: #1b0d04; }
+button.ghost { background: transparent; border-color: var(--line); }
+button.danger { background: transparent; border-color: rgba(255,107,107,.4); color: var(--danger); }
+button:disabled { opacity: .5; cursor: default; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.hint { font-size: 13px; color: var(--text-3); margin: 8px 0 0; }
+.error { color: var(--danger); font-weight: 600; font-size: 14px; min-height: 20px; margin: 10px 0 0; }
+.ok { color: var(--ok); font-weight: 600; font-size: 14px; }
+.menu { display: grid; gap: 10px; }
+.tile { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1.5px solid var(--line); text-decoration: none; color: inherit; }
+.tile:hover { border-color: var(--accent); }
+.tile--primary { background: var(--accent); color: #1b0d04; border-color: transparent; }
+.tile--primary .tile__text, .tile--primary .tile__title { color: rgba(27,13,4,.8); }
+.tile--primary .tile__title { color: #1b0d04; }
+.tile__icon { font-size: 22px; line-height: 1.2; }
+.tile__title { font-weight: 700; margin-bottom: 2px; }
+.tile__text { font-size: 13px; color: var(--text-2); }
+.hidden { display: none !important; }
+.lockicon { font-size: 40px; line-height: 1; margin-bottom: 6px; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: rgba(63,207,142,.14); color: var(--ok); margin-left: 8px; }
+.badge--off { background: var(--surface-2); color: var(--text-3); }
+.kv { list-style: none; padding: 0; margin: 0; }
+.kv li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.kv li:last-child { border-bottom: none; }
+.kv span:first-child { color: var(--text-2); }
+code { background: var(--surface-2); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+select, input[type="number"] {
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2);
+  border: 1.5px solid var(--line); color: var(--text); font-size: 15px; font-family: inherit;
+}
+select:focus, input[type="number"]:focus { outline: none; border-color: var(--accent); }
+.row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.row--3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 520px) { .row, .row--3 { grid-template-columns: 1fr 1fr; } }
+.glist { list-style: none; padding: 0; margin: 6px 0 0; }
+.gitem { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.gitem:last-child { border-bottom: none; }
+.gitem__photo { width: 64px; height: 48px; object-fit: cover; border-radius: 8px; background: var(--surface-2); flex: none; }
+.gitem__body { flex: 1; min-width: 0; }
+.gitem__title { font-weight: 600; font-size: 14px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gitem__meta { font-size: 12px; color: var(--text-3); margin: 2px 0 0; }
+.gitem__actions { display: flex; gap: 6px; flex: none; }
+.gitem__actions button { padding: 8px 10px; font-size: 13px; }
+.state { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  background: var(--surface-2); color: var(--text-3); }
+.state--new { background: rgba(255,107,44,.14); color: var(--accent); }
+.state--live { background: rgba(63,207,142,.14); color: var(--ok); }
+.preview { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.preview img { width: 96px; height: 72px; object-fit: cover; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.preview__empty { width: 96px; height: 72px; border-radius: 10px; background: var(--surface-2);
+  border: 1px dashed var(--line); display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 12px; }
+.log { font-size: 12.5px; color: var(--text-2); background: var(--surface-2); border-radius: var(--radius-sm);
+  padding: 10px 12px; margin: 10px 0 0; max-height: 200px; overflow: auto; white-space: pre-wrap; }
+.log:empty { display: none; }
+.progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 10px 0 0; }
+.progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s ease; }
+.steps { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--text-2); }
+.steps li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ЭКРАН ВХОДА -->
+  <section id="lock">
+    <div class="card">
+      <div class="lockicon" aria-hidden="true">🔒</div>
+      <h1 id="lock-title">Меню админа</h1>
+      <p id="lock-lead">Введите пароль, чтобы открыть настройки приёма заявок.</p>
+
+      <div id="setup-block" class="hidden">
+        <p>Пароль ещё не задан — придумайте его сейчас. Пароль хранится только в этом браузере
+           (в виде отпечатка, без самого пароля) и им же шифруется токен бота.</p>
+        <label>
+          <span class="label">Новый пароль (минимум 6 символов)</span>
+          <input id="new-password" type="password" autocomplete="new-password" placeholder="••••••"/>
+        </label>
+        <label>
+          <span class="label">Повторите пароль</span>
+          <input id="new-password2" type="password" autocomplete="new-password" placeholder="••••••"/>
+        </label>
+      </div>
+
+      <div id="unlock-block" class="hidden">
+        <label>
+          <span class="label">Пароль</span>
+          <input id="password" type="password" autocomplete="current-password" placeholder="••••••"/>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="lock-submit" class="primary" type="button">Войти</button>
+        <a class="tile__text" href="index.html" style="align-self:center">← На сайт</a>
+      </div>
+      <p class="error" id="lock-error"></p>
+      <p class="hint">Забыли пароль? Нажмите «Сбросить доступ» — настройки будут удалены из браузера,
+        и токен нужно будет вставить заново (взять у @BotFather).</p>
+      <div class="actions">
+        <button id="reset" class="danger" type="button">Сбросить доступ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- МЕНЮ -->
+  <section id="menu" class="hidden">
+    <h1>Меню админа <span class="badge" id="status-badge">открыто</span></h1>
+    <p>Настройки зашифрованы паролем и хранятся только в этом браузере.</p>
+
+    <div class="card">
+      <div class="menu">
+        <a class="tile tile--primary" href="bot.html">
+          <span class="tile__icon" aria-hidden="true">🤖</span>
+          <span>
+            <span class="tile__title">Панель бота — принимать заявки</span>
+            <span class="tile__text">Пока вкладка открыта, бот забирает заявки с сайта и пересылает их модератору</span>
+          </span>
+        </a>
+        <button class="tile" id="check-bot" type="button">
+          <span class="tile__icon" aria-hidden="true">✅</span>
+          <span>
+            <span class="tile__title">Проверить бота</span>
+            <span class="tile__text">Живой ли токен и кому принадлежит бот</span>
+          </span>
+        </button>
+        <button class="tile" id="show-settings" type="button">
+          <span class="tile__icon" aria-hidden="true">⚙️</span>
+          <span>
+            <span class="tile__title">Настройки приёма заявок</span>
+            <span class="tile__text">Токен бота, chat_id модератора, адрес сайта</span>
+          </span>
+        </button>
+        <button class="tile" id="show-gallery" type="button">
+          <span class="tile__icon" aria-hidden="true">🖼️</span>
+          <span>
+            <span class="tile__title">Галерея шаблонов</span>
+            <span class="tile__text">Загрузить фото примеров, задать размер и цвет, опубликовать на сайте</span>
+          </span>
+        </button>
+        <button class="tile" id="show-password" type="button">
+          <span class="tile__icon" aria-hidden="true">🔑</span>
+          <span>
+            <span class="tile__title">Сменить пароль</span>
+            <span class="tile__text">Настройки будут перешифрованы новым паролем</span>
+          </span>
+        </button>
+        <button class="tile" id="logout" type="button">
+          <span class="tile__icon" aria-hidden="true">🚪</span>
+          <span>
+            <span class="tile__title">Выйти</span>
+            <span class="tile__text">Закрыть доступ, пока не введёте пароль снова</span>
+          </span>
+        </button>
+      </div>
+      <p class="error" id="menu-error"></p>
+      <p class="ok" id="menu-ok"></p>
+    </div>
+
+    <div class="card">
+      <h2>Что сейчас настроено</h2>
+      <ul class="kv" id="summary"></ul>
+      <p class="hint">Токен показывается замаскированным: целиком его можно увидеть только у @BotFather.</p>
+    </div>
+
+    <!-- НАСТРОЙКИ -->
+    <div class="card hidden" id="settings-card">
+      <h2>Настройки приёма заявок</h2>
+      <label>
+        <span class="label">Токен бота</span>
+        <input id="s-token" type="password" autocomplete="off" spellcheck="false" placeholder="1234567890:AAH…"/>
+      </label>
+      <label>
+        <span class="label">chat_id модератора — кому присылать заявки</span>
+        <input id="s-moderator" type="text" inputmode="numeric" autocomplete="off" placeholder="7114829971"/>
+      </label>
+      <label>
+        <span class="label">Адрес сайта (необязательно)</span>
+        <input id="s-publicUrl" type="text" autocomplete="off" placeholder="https://ваш-логин.github.io/artmoto23.io/"/>
+      </label>
+
+      <h2>Публикация галереи в GitHub</h2>
+      <p class="hint">Нужно только для кнопки «Опубликовать» в галерее шаблонов. Токен хранится
+         зашифрованным вместе с остальными настройками и даёт доступ только к этому репозиторию.</p>
+      <label>
+        <span class="label">Токен GitHub (fine-grained, Contents: Read and write)</span>
+        <input id="s-ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"/>
+      </label>
+      <div class="row">
+        <label>
+          <span class="label">Владелец (логин)</span>
+          <input id="s-ghOwner" type="text" autocomplete="off" placeholder="ckot23"/>
+        </label>
+        <label>
+          <span class="label">Репозиторий</span>
+          <input id="s-ghRepo" type="text" autocomplete="off" placeholder="artmoto23.io"/>
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <span class="label">Ветка</span>
+          <input id="s-ghBranch" type="text" autocomplete="off" placeholder="main"/>
+        </label>
+      </div>
+      <p class="hint" id="github-help"></p>
+      <div class="actions">
+        <button id="save-settings" class="primary" type="button">Сохранить</button>
+        <button id="cancel-settings" class="ghost" type="button">Отмена</button>
+      </div>
+      <p class="error" id="settings-error"></p>
+    </div>
+
+    <!-- ГАЛЕРЕЯ ШАБЛОНОВ -->
+    <div class="card hidden" id="gallery-card">
+      <h2>Галерея шаблонов</h2>
+      <p>Шаблон — это фото примера плюс настройки заказа: материал, дизайн, цвет, форма, размер и тираж.
+         Клиент на сайте нажимает на карточку, и конструктор сразу считает цену по этим настройкам.</p>
+
+      <div class="preview">
+        <img id="t-photo-prev" alt="" hidden/>
+        <div class="preview__empty" id="t-photo-empty">нет фото</div>
+        <div>
+          <label style="margin:0">
+            <span class="label">Фото шаблона</span>
+            <input id="t-photo" type="file" accept="image/jpeg,image/png,image/webp" style="font-size:13px"/>
+          </label>
+          <p class="hint" style="margin:6px 0 0">JPEG, PNG или WebP. Фото сжимается в браузере: длинная сторона до 1280 точек.</p>
+        </div>
+      </div>
+
+      <label>
+        <span class="label">Название на карточке</span>
+        <input id="t-title" type="text" autocomplete="off" maxlength="56" placeholder="Кофейня: Open 24/7"/>
+      </label>
+      <label>
+        <span class="label">Подпись (необязательно)</span>
+        <input id="t-note" type="text" autocomplete="off" maxlength="240" placeholder="Витрина, 30 × 15 см"/>
+      </label>
+
+      <div class="row--3 row">
+        <label>
+          <span class="label">Материал</span>
+          <select id="t-film"></select>
+        </label>
+        <label>
+          <span class="label">Дизайн</span>
+          <select id="t-design"></select>
+        </label>
+        <label>
+          <span class="label">Цвет</span>
+          <select id="t-color"></select>
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <span class="label">Форма</span>
+          <select id="t-shape"></select>
+        </label>
+        <label>
+          <span class="label">Тираж, шт</span>
+          <input id="t-quantity" type="number" min="1" max="10000" step="1" value="10"/>
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <span class="label">Ширина, см</span>
+          <input id="t-width" type="number" min="1" max="500" step="0.5" value="10"/>
+        </label>
+        <label>
+          <span class="label">Высота, см</span>
+          <input id="t-height" type="number" min="1" max="500" step="0.5" value="10"/>
+        </label>
+      </div>
+      <p class="hint">Цена на карточке: <b id="t-price">—</b></p>
+
+      <div class="actions">
+        <button id="t-save" class="primary" type="button">Сохранить шаблон</button>
+        <button id="t-cancel" class="ghost hidden" type="button">Отменить правку</button>
+      </div>
+
+      <h2>Шаблоны</h2>
+      <ul class="glist" id="t-list"></ul>
+      <p class="hint" id="t-empty">Пока ни одного шаблона. До публикации галереи на сайте нет.</p>
+
+      <h2>Публикация на сайте</h2>
+      <p class="hint">Сайт статический, поэтому шаблоны живут в репозитории: фото — в
+         <code>templates/img</code>, список — в <code>templates/catalog.js</code>.
+         Опубликованные шаблоны появляются на сайте через 1–2 минуты (GitHub Pages).</p>
+      <p class="hint" id="storage-note"></p>
+      <div class="actions">
+        <button id="t-load" class="ghost" type="button">Загрузить каталог с сайта</button>
+        <button id="t-zip" class="ghost" type="button">Скачать архив для GitHub</button>
+        <button id="t-publish" class="primary" type="button">Опубликовать в GitHub</button>
+      </div>
+      <div class="progress" id="t-progress" hidden><span id="t-progress-fill"></span></div>
+      <div class="log" id="gallery-log"></div>
+      <p class="error" id="gallery-error"></p>
+      <p class="ok" id="gallery-ok"></p>
+
+      <h2>Архив вручную</h2>
+      <ol class="steps">
+        <li>Нажмите «Скачать архив для GitHub» — внутри папка <code>templates</code> с фото и каталогом.</li>
+        <li>Откройте репозиторий на github.com → <b>Add file</b> → <b>Upload files</b>.</li>
+        <li>Перетащите папку <code>templates</code> из архива (с заменой) и нажмите <b>Commit changes</b>.</li>
+        <li>Через 1–2 минуты галерея обновится на сайте.</li>
+      </ol>
+    </div>
+
+    <!-- СМЕНА ПАРОЛЯ -->
+    <div class="card hidden" id="password-card">
+      <h2>Смена пароля</h2>
+      <label>
+        <span class="label">Текущий пароль</span>
+        <input id="p-old" type="password" autocomplete="current-password"/>
+      </label>
+      <label>
+        <span class="label">Новый пароль (минимум 6 символов)</span>
+        <input id="p-new" type="password" autocomplete="new-password"/>
+      </label>
+      <label>
+        <span class="label">Повторите новый пароль</span>
+        <input id="p-new2" type="password" autocomplete="new-password"/>
+      </label>
+      <div class="actions">
+        <button id="save-password" class="primary" type="button">Сменить пароль</button>
+        <button id="cancel-password" class="ghost" type="button">Отмена</button>
+      </div>
+      <p class="error" id="password-error"></p>
+      <p class="hint">Пароль нужен и для панели бота: без входа в админку панель заявки не принимает.</p>
+    </div>
+
+    <div class="card">
+      <h2>Как это устроено</h2>
+      <p>Пароль и настройки живут только в этом браузере: в файлах сайта ни пароля, ни токена нет,
+         поэтому их нельзя подсмотреть на GitHub или через исходный код страницы. Токен зашифрован
+         паролем (AES-GCM), ключ выводится из пароля (PBKDF2-SHA256, 150 000 итераций).</p>
+      <p>Что важно знать: если кто-то получил ваш токен бота, пароль от админки его не остановит —
+         токен в этом случае нужно отозвать у @BotFather. Пароль защищает доступ к настройкам
+         на устройстве и лежащий в браузере токен.</p>
+    </div>
+  </section>
+
+</div>
+
+<script src="pricing.js"></script>
+<script src="templates.js"></script>
+<script src="templatesync.js"></script>
+<script src="adminlock.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var vault = AdminLock.createVault({});
+  var savedPassword = "";        /* держим только пока открыта вкладка */
+  var current = { token: "", moderator: "", publicUrl: "",
+    ghToken: "", ghOwner: "", ghRepo: "", ghBranch: "" };
+
+  /* Справочники для формы шаблона берём из прайса — чтобы галерея не разошлась
+     с конструктором. */
+  var DICTS = Templates.dictsFromPricing(Pricing);
+
+  var el = {
+    lock: document.getElementById("lock"),
+    menu: document.getElementById("menu"),
+    lockTitle: document.getElementById("lock-title"),
+    lockLead: document.getElementById("lock-lead"),
+    setupBlock: document.getElementById("setup-block"),
+    unlockBlock: document.getElementById("unlock-block"),
+    newPassword: document.getElementById("new-password"),
+    newPassword2: document.getElementById("new-password2"),
+    password: document.getElementById("password"),
+    lockSubmit: document.getElementById("lock-submit"),
+    lockError: document.getElementById("lock-error"),
+    reset: document.getElementById("reset"),
+    menuError: document.getElementById("menu-error"),
+    menuOk: document.getElementById("menu-ok"),
+    summary: document.getElementById("summary"),
+    statusBadge: document.getElementById("status-badge"),
+    checkBot: document.getElementById("check-bot"),
+    showSettings: document.getElementById("show-settings"),
+    showPassword: document.getElementById("show-password"),
+    logout: document.getElementById("logout"),
+    settingsCard: document.getElementById("settings-card"),
+    settingsError: document.getElementById("settings-error"),
+    sToken: document.getElementById("s-token"),
+    sModerator: document.getElementById("s-moderator"),
+    sPublicUrl: document.getElementById("s-publicUrl"),
+    saveSettings: document.getElementById("save-settings"),
+    cancelSettings: document.getElementById("cancel-settings"),
+    passwordCard: document.getElementById("password-card"),
+    passwordError: document.getElementById("password-error"),
+    pOld: document.getElementById("p-old"),
+    pNew: document.getElementById("p-new"),
+    pNew2: document.getElementById("p-new2"),
+    savePassword: document.getElementById("save-password"),
+    cancelPassword: document.getElementById("cancel-password"),
+    /* галерея шаблонов */
+    showGallery: document.getElementById("show-gallery"),
+    galleryCard: document.getElementById("gallery-card"),
+    galleryError: document.getElementById("gallery-error"),
+    galleryOk: document.getElementById("gallery-ok"),
+    galleryLog: document.getElementById("gallery-log"),
+    storageNote: document.getElementById("storage-note"),
+    tPhoto: document.getElementById("t-photo"),
+    tPhotoPrev: document.getElementById("t-photo-prev"),
+    tPhotoEmpty: document.getElementById("t-photo-empty"),
+    tTitle: document.getElementById("t-title"),
+    tNote: document.getElementById("t-note"),
+    tFilm: document.getElementById("t-film"),
+    tDesign: document.getElementById("t-design"),
+    tColor: document.getElementById("t-color"),
+    tShape: document.getElementById("t-shape"),
+    tWidth: document.getElementById("t-width"),
+    tHeight: document.getElementById("t-height"),
+    tQuantity: document.getElementById("t-quantity"),
+    tPrice: document.getElementById("t-price"),
+    tSave: document.getElementById("t-save"),
+    tCancel: document.getElementById("t-cancel"),
+    tList: document.getElementById("t-list"),
+    tEmpty: document.getElementById("t-empty"),
+    tLoad: document.getElementById("t-load"),
+    tZip: document.getElementById("t-zip"),
+    tPublish: document.getElementById("t-publish"),
+    tProgress: document.getElementById("t-progress"),
+    tProgressFill: document.getElementById("t-progress-fill"),
+    sGhToken: document.getElementById("s-ghToken"),
+    sGhOwner: document.getElementById("s-ghOwner"),
+    sGhRepo: document.getElementById("s-ghRepo"),
+    sGhBranch: document.getElementById("s-ghBranch"),
+    githubHelp: document.getElementById("github-help")
+  };
+
+  function mask(value) {
+    if (!value) return "не задан";
+    var tail = value.slice(-4);
+    return "•".repeat(Math.max(6, value.length - tail.length - 4)) + "…" + tail;
+  }
+
+  function showMenu(settings) {
+    current = Object.assign({ token: "", moderator: "", publicUrl: "",
+      ghToken: "", ghOwner: "", ghRepo: "", ghBranch: "" }, settings || {});
+    el.lock.classList.add("hidden");
+    el.menu.classList.remove("hidden");
+    el.menuError.textContent = "";
+    el.sToken.value = current.token || "";
+    el.sModerator.value = current.moderator || "";
+    el.sPublicUrl.value = current.publicUrl || "";
+    refreshSummarySoon();
+    el.sGhToken.value = current.ghToken || "";
+    el.sGhOwner.value = current.ghOwner || "";
+    el.sGhRepo.value = current.ghRepo || "";
+    el.sGhBranch.value = current.ghBranch || "main";
+    refreshSummary();
+  }
+
+  /* Сводка читает список шаблонов, который готовится чуть позже входа. */
+  function refreshSummarySoon() { window.setTimeout(refreshSummary, 0); }
+
+  function refreshSummary() {
+    if (!el.summary) return;
+    el.summary.textContent = "";
+    [
+      ["Бот", current.token ? "настроен" : "не настроен"],
+      ["Токен", mask(current.token)],
+      ["chat_id модератора", current.moderator || "не задан"],
+      ["Адрес сайта", current.publicUrl || "не задан"],
+      ["Галерея", gallery.length + " " + plural(gallery.length, "шаблон", "шаблона", "шаблонов") +
+        (current.ghToken ? " · публикация в " + (current.ghOwner || "?") + "/" + (current.ghRepo || "?") : " · публикация архивом")],
+      ["Вход", "пароль + шифрование AES-GCM"]
+    ].forEach(function (row) {
+      var li = document.createElement("li");
+      var left = document.createElement("span");
+      var right = document.createElement("span");
+      left.textContent = row[0];
+      right.textContent = row[1];
+      li.appendChild(left);
+      li.appendChild(right);
+      el.summary.appendChild(li);
+    });
+  }
+
+  function showLock() {
+    el.menu.classList.add("hidden");
+    el.lock.classList.remove("hidden");
+    var hasPassword = vault.hasPassword();
+    el.setupBlock.classList.toggle("hidden", hasPassword);
+    el.unlockBlock.classList.toggle("hidden", !hasPassword);
+    el.lockTitle.textContent = hasPassword ? "Меню админа" : "Придумайте пароль админа";
+    el.lockLead.textContent = hasPassword
+      ? "Введите пароль, чтобы открыть настройки приёма заявок."
+      : "Это первый вход: пароль хранится только в этом браузере.";
+    el.lockSubmit.textContent = hasPassword ? "Войти" : "Задать пароль";
+    (hasPassword ? el.password : el.newPassword).focus();
+  }
+
+  function unlockOrSetup() {
+    el.lockError.textContent = "";
+    if (vault.hasPassword()) {
+      var password = el.password.value;
+      if (!password) { el.lockError.textContent = "Введите пароль"; return; }
+      vault.unlock(password).then(function (opened) {
+        savedPassword = password;
+        el.password.value = "";
+        showMenu(opened.settings || {});
+      }).catch(function (error) {
+        el.lockError.textContent = "⚠️ " + error.message;
+      });
+      return;
+    }
+    var one = el.newPassword.value;
+    if (one.length < 6) { el.lockError.textContent = "Пароль должен быть не короче 6 символов"; return; }
+    if (one !== el.newPassword2.value) { el.lockError.textContent = "Пароли не совпадают"; return; }
+    vault.setup(one).then(function () {
+      savedPassword = one;
+      el.newPassword.value = "";
+      el.newPassword2.value = "";
+      showMenu({});
+      el.menuOk.textContent = "Пароль задан. Теперь заполните настройки.";
+      el.settingsCard.classList.remove("hidden");
+    }).catch(function (error) {
+      el.lockError.textContent = "⚠️ " + error.message;
+    });
+  }
+
+  el.lockSubmit.addEventListener("click", unlockOrSetup);
+  [el.password, el.newPassword2].forEach(function (input) {
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); unlockOrSetup(); }
+    });
+  });
+
+  el.reset.addEventListener("click", function () {
+    if (!window.confirm("Удалить пароль и настройки из этого браузера? Токен бота придётся вставить заново.")) return;
+    vault.clear();
+    savedPassword = "";
+    current = { token: "", moderator: "", publicUrl: "" };
+    el.lockError.textContent = "Доступ сброшен — задайте новый пароль.";
+    showLock();
+  });
+
+  el.showSettings.addEventListener("click", function () {
+    el.settingsCard.classList.remove("hidden");
+    el.passwordCard.classList.add("hidden");
+    el.settingsError.textContent = "";
+    el.menuOk.textContent = "";
+    el.sToken.focus();
+  });
+
+  el.cancelSettings.addEventListener("click", function () {
+    el.settingsCard.classList.add("hidden");
+  });
+
+  el.saveSettings.addEventListener("click", function () {
+    var token = el.sToken.value.trim();
+    var moderator = el.sModerator.value.trim();
+    if (!token || token.indexOf(":") === -1) {
+      el.settingsError.textContent = "Токен выглядит неполным: он содержит цифры, двоеточие и буквы";
+      return;
+    }
+    if (!moderator) {
+      el.settingsError.textContent = "Укажите chat_id модератора (узнать: бот /id)";
+      return;
+    }
+    var settings = {
+      token: token, moderator: moderator, publicUrl: el.sPublicUrl.value.trim(),
+      ghToken: el.sGhToken.value.trim(), ghOwner: el.sGhOwner.value.trim(),
+      ghRepo: el.sGhRepo.value.trim(), ghBranch: el.sGhBranch.value.trim() || "main"
+    };
+    el.settingsError.textContent = "Сохраняю…";
+    vault.save(settings, savedPassword).then(function () {
+      showMenu(settings);
+      el.settingsCard.classList.add("hidden");
+      el.menuOk.textContent = "Настройки сохранены и зашифрованы.";
+    }).catch(function (error) {
+      el.settingsError.textContent = "⚠️ " + error.message;
+    });
+  });
+
+  /* ==========================================================================
+     ГАЛЕРЕЯ ШАБЛОНОВ
+     Черновики шаблонов лежат в localStorage этого браузера (фото — сжатый JPEG).
+     Публикация кладёт их в репозиторий: templates/img/*.jpg и templates/catalog.js.
+     Секретов здесь нет: и фото, и настройки после публикации видны всем — это товар.
+     ====================================================================== */
+
+  var GALLERY_KEY = "stickers:gallery:v1";
+  var PHOTO_MAX_PX = 1280;
+  var PHOTO_ORIGINAL_MAX = 15 * 1024 * 1024;
+  var STORAGE_SOFT_LIMIT = 4 * 1024 * 1024;
+
+  var gallery = [];
+  var pendingPhoto = null;        /* dataUrl нового фото, ещё не сохранённого */
+  var editingId = null;
+
+  function plural(count, one, few, many) {
+    var n = Math.abs(count) % 100;
+    var n1 = n % 10;
+    if (n > 10 && n < 20) return many;
+    if (n1 > 1 && n1 < 5) return few;
+    if (n1 === 1) return one;
+    return many;
+  }
+
+  function bytesText(bytes) {
+    if (bytes < 1024) return bytes + " Б";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " КБ";
+    return (bytes / 1024 / 1024).toFixed(1) + " МБ";
+  }
+
+  function readGallery() {
+    try {
+      var raw = window.localStorage.getItem(GALLERY_KEY);
+      var data = raw ? JSON.parse(raw) : [];
+      gallery = Array.isArray(data) ? data.filter(function (item) {
+        return item && item.id && item.title && item.settings;
+      }) : [];
+    } catch (e) {
+      gallery = [];
+    }
+    return gallery;
+  }
+
+  function writeGallery() {
+    try {
+      window.localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+      return true;
+    } catch (error) {
+      el.galleryError.textContent = "⚠️ Браузер не принял новые фото: место в хранилище кончилось. "
+        + "Опубликуйте или удалите часть шаблонов — после публикации фото в браузере не хранятся.";
+      return false;
+    }
+  }
+
+  function galleryBytes() {
+    try { return (window.localStorage.getItem(GALLERY_KEY) || "").length; } catch (e) { return 0; }
+  }
+
+  function storageNote() {
+    if (!el.storageNote) return;
+    var used = galleryBytes();
+    var local = gallery.filter(function (item) { return Boolean(item.photo); }).length;
+    var text = "В этом браузере: " + bytesText(used) + " (черновики"
+      + (local ? ", из них " + local + " " + plural(local, "фото", "фото", "фото") + " ещё не опубликовано" : "")
+      + "). Лимит браузера — около 5 МБ: после публикации фото из браузера убираются.";
+    if (used > STORAGE_SOFT_LIMIT) text += " Место почти кончилось — опубликуйте шаблоны.";
+    el.storageNote.textContent = text;
+  }
+
+  function options(select, list, names) {
+    if (!select) return;
+    select.textContent = "";
+    list.forEach(function (item) {
+      var option = document.createElement("option");
+      option.value = item;
+      option.textContent = names[item] || item;
+      select.appendChild(option);
+    });
+  }
+
+  function nameMap(list) {
+    var out = {};
+    list.forEach(function (item) { out[item.id] = item.name; });
+    return out;
+  }
+
+  var DESIGN_NAMES = nameMap(Pricing.DESIGNS);
+  var SHAPE_NAMES = { rectangle: "Прямоугольник", rounded: "Скруглённая", circle: "Круглая" };
+
+  function fillForm() {
+    options(el.tFilm, DICTS.films, nameMap(Pricing.FILMS));
+    options(el.tDesign, DICTS.designs, DESIGN_NAMES);
+    options(el.tColor, DICTS.colors, nameMap(Pricing.COLORS));
+    options(el.tShape, DICTS.shapes, SHAPE_NAMES);
+    el.tShape.value = "rectangle";
+  }
+
+  function formSettings() {
+    return {
+      film: el.tFilm.value, design: el.tDesign.value, color: el.tColor.value, shape: el.tShape.value,
+      width: parseFloat(el.tWidth.value) || 10, height: parseFloat(el.tHeight.value) || 10,
+      quantity: parseInt(el.tQuantity.value, 10) || 10
+    };
+  }
+
+  function priceText() {
+    var settings = Templates.normalizeSettings(formSettings(), DICTS);
+    var total = null;
+    try { total = Pricing.calculate(Templates.toOrder(settings)).total; } catch (e) { total = null; }
+    return total == null ? "—" : Pricing.money(total) + " за " + settings.quantity + " шт";
+  }
+
+  function refreshPrice() { el.tPrice.textContent = priceText(); }
+
+  function showPendingPhoto(dataUrl) {
+    if (dataUrl) {
+      el.tPhotoPrev.src = dataUrl;
+      el.tPhotoPrev.hidden = false;
+      el.tPhotoEmpty.hidden = true;
+    } else {
+      el.tPhotoPrev.removeAttribute("src");
+      el.tPhotoPrev.hidden = true;
+      el.tPhotoEmpty.hidden = false;
+    }
+  }
+
+  /* Сжимаем фото в браузере: галерее хватает 1280 точек по длинной стороне. */
+  function compressPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !file.type || file.type.indexOf("image/") !== 0) {
+        reject(new Error("Это не картинка. Нужен JPEG, PNG или WebP."));
+        return;
+      }
+      if (file.size > PHOTO_ORIGINAL_MAX) {
+        reject(new Error("Фото больше 15 МБ — уменьшите его или выберите другое."));
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error("Не удалось прочитать файл.")); };
+      reader.onload = function () {
+        var image = new Image();
+        image.onerror = function () { reject(new Error("Файл не похож на картинку.")); };
+        image.onload = function () {
+          var maxPx = PHOTO_MAX_PX;
+          var quality = 0.82;
+          var dataUrl = drawImageToJpeg(image, maxPx, quality);
+          /* Совсем тяжёлый кадр сжимаем сильнее — карточка в галерее небольшая. */
+          if (dataUrl.length > 700 * 1024) dataUrl = drawImageToJpeg(image, 1024, 0.72);
+          if (dataUrl.length > 700 * 1024) dataUrl = drawImageToJpeg(image, 800, 0.68);
+          if (!dataUrl || dataUrl.length < 100) { reject(new Error("Не удалось сжать фото.")); return; }
+          resolve(dataUrl);
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function drawImageToJpeg(image, maxPx, quality) {
+    var fit = Templates.fitPhotoSize(image.width || image.naturalWidth, image.height || image.naturalHeight, maxPx);
+    var canvas = document.createElement("canvas");
+    canvas.width = fit.width;
+    canvas.height = fit.height;
+    var context = canvas.getContext("2d");
+    if (!context) return "";
+    /* Белый фон: прозрачный PNG в JPEG иначе станет чёрным. */
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, fit.width, fit.height);
+    context.drawImage(image, 0, 0, fit.width, fit.height);
+    return canvas.toDataURL("image/jpeg", quality);
+  }
+
+  function templateImage(item) {
+    if (item.photo) return item.photo;
+    if (item.img) return item.img;
+    return "";
+  }
+
+  function renderTemplates() {
+    if (!el.tList) return;
+    el.tList.textContent = "";
+    var ordered = Templates.sortCatalog(gallery);
+    ordered.forEach(function (item) {
+      var li = document.createElement("li");
+      li.className = "gitem";
+
+      var img = document.createElement("img");
+      img.className = "gitem__photo";
+      img.alt = "";
+      img.src = templateImage(item);
+      li.appendChild(img);
+
+      var body = document.createElement("div");
+      body.className = "gitem__body";
+      var title = document.createElement("p");
+      title.className = "gitem__title";
+      title.textContent = item.title;
+      body.appendChild(title);
+
+      var price = null;
+      try { price = Pricing.calculate(Templates.toOrder(item.settings)); } catch (e) { price = null; }
+      var meta = document.createElement("p");
+      meta.className = "gitem__meta";
+      meta.textContent = (price ? Pricing.money(price.total) + " · " : "")
+        + item.settings.width + " × " + item.settings.height + " см · " + item.settings.quantity + " шт";
+      body.appendChild(meta);
+
+      var state = document.createElement("span");
+      state.className = "state " + (item.photo ? "state--new" : "state--live");
+      state.textContent = item.photo ? "не опубликован" : "на сайте";
+      body.appendChild(state);
+      li.appendChild(body);
+
+      var actions = document.createElement("div");
+      actions.className = "gitem__actions";
+      var edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "ghost";
+      edit.textContent = "Правка";
+      edit.addEventListener("click", function () { startEdit(item.id); });
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "Удалить";
+      remove.addEventListener("click", function () { removeTemplate(item.id); });
+      actions.appendChild(edit);
+      actions.appendChild(remove);
+      li.appendChild(actions);
+
+      el.tList.appendChild(li);
+    });
+    el.tEmpty.hidden = ordered.length > 0;
+    storageNote();
+  }
+
+  function clearForm() {
+    editingId = null;
+    pendingPhoto = null;
+    el.tPhoto.value = "";
+    el.tTitle.value = "";
+    el.tNote.value = "";
+    el.tFilm.value = DICTS.films[0];
+    el.tDesign.value = DICTS.designs.indexOf("catalog") === -1 ? DICTS.designs[0] : "catalog";
+    el.tColor.value = DICTS.colors[0];
+    el.tShape.value = DICTS.shapes[0];
+    el.tWidth.value = 10;
+    el.tHeight.value = 10;
+    el.tQuantity.value = 10;
+    el.tSave.textContent = "Сохранить шаблон";
+    el.tCancel.classList.add("hidden");
+    showPendingPhoto("");
+    refreshPrice();
+  }
+
+  function startEdit(id) {
+    var item = Templates.findById(gallery, id);
+    if (!item) return;
+    editingId = id;
+    pendingPhoto = null;
+    el.tPhoto.value = "";
+    el.tTitle.value = item.title;
+    el.tNote.value = item.note || "";
+    el.tFilm.value = item.settings.film;
+    el.tDesign.value = item.settings.design;
+    el.tColor.value = item.settings.color;
+    el.tShape.value = item.settings.shape;
+    el.tWidth.value = item.settings.width;
+    el.tHeight.value = item.settings.height;
+    el.tQuantity.value = item.settings.quantity;
+    el.tSave.textContent = "Сохранить правку";
+    el.tCancel.classList.remove("hidden");
+    showPendingPhoto(templateImage(item));
+    refreshPrice();
+    el.tTitle.focus();
+  }
+
+  function saveTemplate() {
+    el.galleryError.textContent = "";
+    el.galleryOk.textContent = "";
+    var title = el.tTitle.value.trim();
+    if (!title) { el.galleryError.textContent = "Напишите название — оно будет на карточке."; el.tTitle.focus(); return; }
+
+    var photo = pendingPhoto || (editingId && (Templates.findById(gallery, editingId) || {}).photo) || null;
+    var existing = editingId ? Templates.findById(gallery, editingId) : null;
+    if (!photo && !(existing && existing.img)) {
+      el.galleryError.textContent = "Выберите фото шаблона.";
+      return;
+    }
+
+    var settings = Templates.normalizeSettings(formSettings(), DICTS);
+    var record;
+    if (existing) {
+      record = existing;
+      record.title = title;
+      record.note = el.tNote.value.trim();
+      record.settings = settings;
+      if (pendingPhoto) { record.photo = pendingPhoto; record.img = ""; }
+    } else {
+      var id = Templates.uniqueId(title, gallery.map(function (item) { return item.id; }));
+      record = {
+        id: id, title: title, note: el.tNote.value.trim(), settings: settings,
+        created: new Date().toISOString(), photo: photo, img: "", published: false
+      };
+      gallery.push(record);
+    }
+
+    if (writeGallery()) {
+      renderTemplates();
+      refreshSummary();
+      clearForm();
+      el.galleryOk.textContent = "Шаблон сохранён" + (record.photo ? " — фото пока только в этом браузере" : "")
+        + ". Нажмите «Опубликовать», чтобы он появился на сайте.";
+    }
+  }
+
+  function removeTemplate(id) {
+    var item = Templates.findById(gallery, id);
+    if (!item) return;
+    if (!window.confirm("Удалить шаблон «" + item.title + "»?\n\nПока вы не нажмёте «Опубликовать», на сайте он останется.")) return;
+    gallery = gallery.filter(function (entry) { return entry.id !== id; });
+    if (editingId === id) clearForm();
+    writeGallery();
+    renderTemplates();
+    refreshSummary();
+    el.galleryOk.textContent = "Удалён из этого браузера. Чтобы убрать с сайта — нажмите «Опубликовать».";
+  }
+
+  /* Собираем каталог для сайта: у каждой записи должен быть путь к фото. */
+  function catalogRecords() {
+    return Templates.sortCatalog(gallery).map(function (item) {
+      var ext = item.photo ? Templates.extFromDataUrl(item.photo) : Templates.extFromPath(item.img);
+      return {
+        id: item.id, title: item.title, note: item.note || "", created: item.created,
+        img: item.photo ? Templates.imgPath(item.id, ext) : item.img,
+        settings: item.settings
+      };
+    });
+  }
+
+  function photosForPublish() {
+    return gallery.map(function (item) {
+      if (!item.photo) {
+        return { id: item.id, ext: Templates.extFromPath(item.img || "a.jpg"), keep: true };
+      }
+      return {
+        id: item.id,
+        base64: Templates.base64FromDataUrl(item.photo),
+        ext: Templates.extFromDataUrl(item.photo),
+        size: TemplateSync.sizeFromDataUrl(item.photo),
+        force: true
+      };
+    });
+  }
+
+  function catalogText() {
+    return Templates.serializeCatalog(catalogRecords());
+  }
+
+  function appendLog(line) {
+    el.galleryLog.textContent += (el.galleryLog.textContent ? "\n" : "") + line;
+    el.galleryLog.scrollTop = el.galleryLog.scrollHeight;
+  }
+
+  function setProgress(percent) {
+    if (!el.tProgress) return;
+    el.tProgress.hidden = percent <= 0 || percent >= 100;
+    el.tProgressFill.style.width = Math.max(0, Math.min(100, percent)) + "%";
+    if (percent >= 100) window.setTimeout(function () { el.tProgress.hidden = true; }, 1200);
+  }
+
+  function needPhotoWarning() {
+    var missing = gallery.filter(function (item) { return !item.photo && !item.img; });
+    if (!missing.length) return true;
+    el.galleryError.textContent = "⚠️ У шаблонов без фото нельзя собрать каталог: "
+      + missing.map(function (item) { return item.title; }).join(", ");
+    return false;
+  }
+
+  function downloadZip() {
+    el.galleryError.textContent = "";
+    el.galleryOk.textContent = "";
+    el.galleryLog.textContent = "";
+    if (!gallery.length) { el.galleryError.textContent = "Сначала добавьте хотя бы один шаблон."; return; }
+    if (!needPhotoWarning()) return;
+
+    var files = [
+      { name: Templates.CATALOG_PATH, data: catalogText() }
+    ];
+    gallery.forEach(function (item) {
+      if (!item.photo) return;
+      files.push({
+        name: "templates/img/" + item.id + "." + Templates.extFromDataUrl(item.photo),
+        data: TemplateSync.bytesFromBase64(Templates.base64FromDataUrl(item.photo))
+      });
+    });
+
+    var zip = Templates.buildZip(files, new Date());
+    var blob = new Blob([zip], { type: "application/zip" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = "templates-gallery.zip";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+
+    appendLog("Архив собран: " + files.length + " " + plural(files.length, "файл", "файла", "файлов")
+      + " (каталог + " + (files.length - 1) + " фото).");
+    appendLog("Загрузите папку templates в репозиторий: Add file → Upload files → Commit changes.");
+    el.galleryOk.textContent = "Архив скачан.";
+  }
+
+  function loadFromSite() {
+    el.galleryError.textContent = "";
+    el.galleryOk.textContent = "";
+    el.galleryOk.textContent = "Читаю каталог с сайта…";
+    fetch("templates/catalog.js?t=" + Date.now(), { cache: "no-store" })
+      .then(function (response) {
+        if (!response.ok) throw new Error("файл не найден (ответ " + response.status + ")");
+        return response.text();
+      })
+      .then(function (text) {
+        var list = Templates.parseCatalog(text);
+        if (!list.length) {
+          el.galleryOk.textContent = "";
+          el.galleryError.textContent = "В каталоге на сайте пока пусто — публиковать нечего.";
+          return;
+        }
+        gallery = Templates.mergeCatalog(gallery, list.map(function (item) {
+          return { id: item.id, title: item.title, note: item.note, settings: item.settings,
+            created: item.created, img: item.img, photo: null, published: true };
+        }));
+        writeGallery();
+        renderTemplates();
+        el.galleryOk.textContent = "Из каталога на сайте добавлено: " + list.length + " "
+          + plural(list.length, "шаблон", "шаблона", "шаблонов") + ". Правьте и публикуйте.";
+      })
+      .catch(function (error) {
+        el.galleryOk.textContent = "";
+        el.galleryError.textContent = "⚠️ Не удалось прочитать каталог: " + error.message
+          + ". Если галерея ещё не публиковалась — это нормально, добавьте шаблоны заново.";
+      });
+  }
+
+  function syncConfig() {
+    return {
+      token: current.ghToken, owner: current.ghOwner, repo: current.ghRepo,
+      branch: current.ghBranch || "main"
+    };
+  }
+
+  function publish() {
+    el.galleryError.textContent = "";
+    el.galleryOk.textContent = "";
+    el.galleryLog.textContent = "";
+    if (!gallery.length) { el.galleryError.textContent = "Сначала добавьте хотя бы один шаблон."; return; }
+    if (!needPhotoWarning()) return;
+    if (!current.ghToken || !current.ghOwner || !current.ghRepo) {
+      el.galleryError.textContent = "Для публикации нужен токен GitHub, логин и репозиторий — "
+        + "откройте «Настройки приёма заявок». Либо скачайте архив и загрузите его в репозиторий вручную.";
+      el.settingsCard.classList.remove("hidden");
+      return;
+    }
+
+    var sync = TemplateSync.createSync(Object.assign(syncConfig(), { fetch: window.fetch.bind(window) }));
+    el.galleryOk.textContent = "Публикую…";
+    el.tPublish.disabled = true;
+    setProgress(5);
+
+    appendLog("Проверяю доступ к " + current.ghOwner + "/" + current.ghRepo + "…");
+    sync.check().then(function (info) {
+      appendLog("Репозиторий: " + info.repo + " · ветка " + info.branch
+        + (info.canPush ? "" : " ⚠️ у токена нет права на запись"));
+      if (!info.canPush) throw new Error("У токена нет права «Contents: Read and write» на этот репозиторий.");
+      return sync.publish({
+        catalogText: catalogText(),
+        photos: photosForPublish(),
+        message: "Галерея шаблонов: " + gallery.length + " " + plural(gallery.length, "шаблон", "шаблона", "шаблонов"),
+        progress: function (event) {
+          var done = (event.index || 0) + 1;
+          var total = event.total || 1;
+          if (event.step === "photo") {
+            appendLog("Фото " + done + "/" + total + ": " + event.path);
+            setProgress(10 + 70 * (event.index / Math.max(1, total)));
+          } else if (event.step === "remove") {
+            appendLog("Убираю лишнее фото: " + event.path);
+          }
+        }
+      });
+    }).then(function (result) {
+      appendLog("Каталог обновлён. Загружено фото: " + result.uploaded.length
+        + ", не потребовалось: " + result.skipped.length
+        + (result.removed.length ? ", удалено: " + result.removed.length : "") + ".");
+      /* Фото теперь в репозитории — в браузере их держать не нужно. */
+      gallery.forEach(function (item) {
+        if (item.photo) {
+          item.img = Templates.imgPath(item.id, Templates.extFromDataUrl(item.photo));
+          item.photo = null;
+        }
+        item.published = true;
+      });
+      writeGallery();
+      renderTemplates();
+      refreshSummary();
+      setProgress(100);
+      el.galleryOk.textContent = "Опубликовано. Галерея появится на сайте через 1–2 минуты.";
+    }).catch(function (error) {
+      setProgress(0);
+      el.galleryOk.textContent = "";
+      el.galleryError.textContent = "⚠️ " + error.message;
+      appendLog("Ошибка: " + error.message);
+    }).then(function () {
+      el.tPublish.disabled = false;
+    });
+  }
+
+  el.showGallery.addEventListener("click", function () {
+    el.galleryCard.classList.remove("hidden");
+    el.settingsCard.classList.add("hidden");
+    el.passwordCard.classList.add("hidden");
+    el.menuOk.textContent = "";
+    el.galleryError.textContent = "";
+    renderTemplates();
+    if (el.galleryCard.scrollIntoView) {
+      try { el.galleryCard.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) { /* старый браузер */ }
+    }
+  });
+
+  el.tPhoto.addEventListener("change", function () {
+    var file = el.tPhoto.files && el.tPhoto.files[0];
+    if (!file) return;
+    el.galleryError.textContent = "";
+    el.galleryOk.textContent = "Сжимаю фото…";
+    compressPhoto(file).then(function (dataUrl) {
+      pendingPhoto = dataUrl;
+      showPendingPhoto(dataUrl);
+      el.galleryOk.textContent = "Фото готово: " + bytesText(dataUrl.length)
+        + " (было " + bytesText(file.size) + "). Не забудьте сохранить шаблон.";
+    }).catch(function (error) {
+      el.galleryOk.textContent = "";
+      el.galleryError.textContent = "⚠️ " + error.message;
+      el.tPhoto.value = "";
+    });
+  });
+
+  [el.tWidth, el.tHeight, el.tQuantity, el.tFilm, el.tDesign, el.tColor, el.tShape].forEach(function (node) {
+    node.addEventListener("change", refreshPrice);
+    node.addEventListener("input", refreshPrice);
+  });
+
+  el.tSave.addEventListener("click", saveTemplate);
+  el.tCancel.addEventListener("click", function () {
+    clearForm();
+    el.galleryOk.textContent = "Правка отменена.";
+  });
+  el.tZip.addEventListener("click", downloadZip);
+  el.tLoad.addEventListener("click", loadFromSite);
+  el.tPublish.addEventListener("click", publish);
+
+  readGallery();
+  fillForm();
+  clearForm();
+  renderTemplates();
+
+  el.checkBot.addEventListener("click", function () {
+    el.menuError.textContent = "";
+    el.menuOk.textContent = "";
+    if (!current.token) {
+      el.menuError.textContent = "Сначала заполните настройки: нужен токен бота";
+      el.settingsCard.classList.remove("hidden");
+      return;
+    }
+    el.menuOk.textContent = "Проверяю бота…";
+    fetch("https://api.telegram.org/bot" + current.token + "/getMe", { method: "POST" })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (data && data.ok) {
+          el.menuOk.textContent = "✅ Токен рабочий: @" + (data.result.username || data.result.id);
+          if (String(current.moderator) === String(data.result.id)) {
+            el.menuError.textContent = "⚠️ chat_id модератора совпадает с ботом — заявки уйдут самому боту";
+          }
+        } else {
+          el.menuError.textContent = "⚠️ " + ((data && data.description) || "токен не работает") +
+            (data && data.error_code === 401 ? " → возьмите свежий у @BotFather" : "");
+        }
+      })
+      .catch(function (error) {
+        el.menuError.textContent = "⚠️ Нет связи с api.telegram.org: " + error.message +
+          " (проверьте интернет, блокировщики, VPN)";
+      });
+  });
+
+  el.showPassword.addEventListener("click", function () {
+    el.passwordCard.classList.remove("hidden");
+    el.settingsCard.classList.add("hidden");
+    el.passwordError.textContent = "";
+    el.pOld.focus();
+  });
+
+  el.cancelPassword.addEventListener("click", function () {
+    el.passwordCard.classList.add("hidden");
+  });
+
+  el.savePassword.addEventListener("click", function () {
+    if (el.pNew.value.length < 6) { el.passwordError.textContent = "Новый пароль короче 6 символов"; return; }
+    if (el.pNew.value !== el.pNew2.value) { el.passwordError.textContent = "Новые пароли не совпадают"; return; }
+    el.passwordError.textContent = "Меняю пароль…";
+    vault.changePassword(el.pOld.value, el.pNew.value).then(function () {
+      savedPassword = el.pNew.value;
+      el.pOld.value = el.pNew.value = el.pNew2.value = "";
+      el.passwordCard.classList.add("hidden");
+      el.menuOk.textContent = "Пароль изменён, настройки перешифрованы.";
+    }).catch(function (error) {
+      el.passwordError.textContent = "⚠️ " + error.message;
+    });
+  });
+
+  el.logout.addEventListener("click", function () {
+    vault.closeSession();
+    savedPassword = "";
+    current = { token: "", moderator: "", publicUrl: "" };
+    el.settingsCard.classList.add("hidden");
+    el.passwordCard.classList.add("hidden");
+    el.menuOk.textContent = "";
+    el.lockError.textContent = "Вы вышли из админки.";
+    showLock();
+  });
+
+  /* Без WebCrypto пароль не защитить: честно говорим об этом, а не падаем. */
+  if (!AdminLock.isAvailable()) {
+    el.lockTitle.textContent = "Нужен https и современный браузер";
+    el.lockLead.textContent = AdminLock.UNAVAILABLE;
+    el.setupBlock.classList.add("hidden");
+    el.unlockBlock.classList.add("hidden");
+    el.lockSubmit.classList.add("hidden");
+    el.reset.classList.add("hidden");
+    return;
+  }
+
+  /* Если в этой вкладке уже входили — не мучаем паролем второй раз. */
+  if (vault.hasSession()) {
+    showMenu(vault.session() || {});
+  } else {
+    showLock();
+  }
+})();
+</script>
+</body>
+</html>
