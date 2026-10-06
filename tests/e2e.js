@@ -297,6 +297,19 @@ function main() {
       });
       assert.strictEqual(found.length, 0, "токен найден в: " + found.join(", ") + " — его нужно отозвать");
     });
+    check("панель получает свои скрипты, а служебные файлы закрыты", function () {
+      /* bot.html в браузере подключает pricing.js, orderlink.js, botcore.js и
+         botpanel.js — если их закрыть, панель не заработает. */
+      var deny = /var DENY_FILES = \[([^\]]+)\]/.exec(fs.readFileSync(path.join(ROOT, "server.js"), "utf8"));
+      assert.ok(deny, "не нашёл список запрещённых файлов");
+      var denied = deny[1];
+      ["pricing.js", "orderlink.js", "botcore.js", "botpanel.js", "bot.html"].forEach(function (file) {
+        assert.ok(denied.indexOf('"' + file + '"') === -1, file + " закрыт, а он нужен панели");
+      });
+      ["server.js", "orders.jsonl", "env.js", "bot.js", "package.json"].forEach(function (file) {
+        assert.ok(denied.indexOf('"' + file + '"') !== -1, file + " не закрыт от посетителей");
+      });
+    });
     check("в workflow токен берётся из секретов, а не из файла", function () {
       var workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/bot.yml"), "utf8");
       assert.ok(workflow.indexOf("secrets.BOT_TOKEN") !== -1, "токен не из секретов");

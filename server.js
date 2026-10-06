@@ -313,8 +313,10 @@ var MIME = {
   ".pdf": "application/pdf"
 };
 
-/* Файлы, которые нельзя отдавать наружу. */
-var DENY_FILES = ["server.js", "orders.jsonl", "pricing.js", "package.json", "package-lock.json"];
+/* Файлы, которые нельзя отдавать наружу. pricing.js, orderlink.js, botcore.js
+   и botpanel.js наоборот должны быть доступны: их грузит панель бота (bot.html). */
+var DENY_FILES = ["server.js", "orders.jsonl", "env.js", "bot.js", "package.json",
+  "package-lock.json", "render.yaml", "Dockerfile", ".dockerignore"];
 
 var RATE_WINDOW_MS = 15 * 60 * 1000;
 var RATE_MAX = 8;
