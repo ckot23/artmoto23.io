@@ -7,10 +7,11 @@
   "scripts": {
     "start": "node server.js",
     "bot": "node bot.js",
-    "test": "node server.js --selftest && node bot.js --selftest && node tests/e2e.js && node tests/bot.js && node tests/panel.js && node tests/admin.js && node tests/templates.js",
+    "test": "node server.js --selftest && node bot.js --selftest && node tests/e2e.js && node tests/bot.js && node tests/panel.js && node tests/updates.js && node tests/admin.js && node tests/templates.js",
     "test:server": "node server.js --selftest && node tests/e2e.js",
     "test:bot": "node bot.js --selftest && node tests/bot.js",
     "test:e2e": "node tests/e2e.js",
+    "test:updates": "node tests/updates.js",
     "poll": "node server.js --poll",
     "send-test": "node server.js --send-test",
     "test:panel": "node tests/panel.js",
