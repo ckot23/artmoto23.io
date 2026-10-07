@@ -102,7 +102,7 @@ function sentToModerator(fetchStub) { return sentTo(fetchStub, "7114829971"); }
 var ORDER = {
   film: "matte", design: "own", color: "black", shape: "circle",
   w: 10, h: 10, qty: 10, name: "Пётр", contact: "@petr_777",
-  delivery: "Рига, СДЭК", comment: "нужно к пятнице", client_total: 4100
+  delivery: "Рига, СДЭК", comment: "нужно к пятнице", client_total: 2460
 };
 
 var chain = Promise.resolve();
@@ -143,7 +143,7 @@ chain = chain.then(function () {
       var toMod = sentToModerator(fetchStub);
       assert.strictEqual(toMod.length, 1, "сообщений модератору: " + toMod.length);
       assert.ok(toMod[0].body.text.indexOf("Пётр") !== -1);
-      assert.ok(toMod[0].body.text.replace(/\u00A0/g, " ").indexOf("4 100 ₽") !== -1);
+      assert.ok(toMod[0].body.text.replace(/\u00A0/g, " ").indexOf("2 460 ₽") !== -1);
     });
     check("клиент получил подтверждение", function () {
       var toClient = sentTo(fetchStub, 777001);
@@ -346,9 +346,9 @@ chain = chain.then(function () {
     assert.ok(html.indexOf("Токен лежит в этом браузере зашифрованным паролем") !== -1);
     assert.ok(admin.indexOf("Токен зашифрован") !== -1);
   });
-  check("сайт ведёт в меню админа, а меню — в панель и обратно", function () {
+  check("внутренние инструменты не добавлены в публичную страницу", function () {
     var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-    assert.ok(index.indexOf("admin.html") !== -1, "на сайте нет ссылки на меню админа");
+    assert.strictEqual(index.indexOf("admin.html"), -1, "в информационную страницу попала ссылка на админку");
     assert.ok(admin.indexOf('href="bot.html"') !== -1, "в меню нет перехода в панель");
     assert.ok(admin.indexOf('href="index.html"') !== -1, "в меню нет возврата на сайт");
     assert.ok(html.indexOf('href="admin.html"') !== -1, "в панели нет перехода в меню");

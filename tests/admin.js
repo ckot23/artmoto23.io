@@ -273,8 +273,8 @@ chain = chain.then(function () {
     assert.ok(lock.indexOf("150000") !== -1, "не задано число итераций");
     assert.ok(lock.indexOf("SHA-256") !== -1);
   });
-  check("сайт ведёт в админку", function () {
-    assert.ok(index.indexOf("admin.html") !== -1, "на сайте нет ссылки на меню админа");
+  check("публичная страница не раскрывает ссылку на внутреннюю админку", function () {
+    assert.strictEqual(index.indexOf("admin.html"), -1, "главная страница ссылается на меню админа");
     assert.strictEqual(index.indexOf('href="bot.html"'), -1, "сайт ведёт прямо в панель, минуя пароль");
   });
   check("страницы админки закрыты от индексации", function () {

@@ -1,16 +1,14 @@
 "use strict";
 /* ============================================================================
-   Прайс, справочники и расчёт цены — серверная копия.
+   Единый прайс материалов и расчёты.
 
-   Такая же таблица лежит внутри index.html (фронтенд должен работать без
-   запросов к API и без интернета). Чтобы копии не разъезжались, есть тест:
-       node server.js --selftest
-   Он вытаскивает константы прямо из index.html и сравнивает с этой таблицей.
-   Меняете прайс — правьте оба файла и гоняйте selftest.
+   Главный сайт использует calculateEstimate() для простой оценки стоимости
+   плёнки по площади. Остальные функции сохраняют совместимость с внутренними
+   инструментами проекта.
    ========================================================================= */
 
 var FILMS = [
-  { id: "matte",       name: "Матовая",         rate: 5.0 },
+  { id: "matte",       name: "Матовая",         rate: 3.0 },
   { id: "gloss",       name: "Глянцевая",       rate: 5.5 },
   { id: "transparent", name: "Прозрачная",      rate: 6.0 },
   { id: "metallic",    name: "Металлик",        rate: 7.0 },
@@ -62,8 +60,8 @@ function round5(value) {
   return Math.round(value / 5) * 5;
 }
 
-/* Полная копия calculate() из index.html — считается по серверным данным,
-   client_total с фронтенда используется только для сверки. */
+/* Совместимый расчёт для внутренних инструментов работы с заявками.
+   Публичная страница использует calculateEstimate() ниже. */
 function calculate(order) {
   var film = byId(FILMS, order.film);
   var design = byId(DESIGNS, order.design);
@@ -82,7 +80,45 @@ function calculate(order) {
   };
 }
 
-/* Телефон, @username или e-mail — на сервере принимаем все три формата. */
+function round2(value) {
+  return Math.round((value + 1e-10) * 100) / 100;
+}
+
+/* Расчёт стоимости материала на главной странице: площадь × ставка × тираж.
+   В нём нет минимальной суммы, скидок или стоимости оформления. */
+function calculateEstimate(raw) {
+  if (!raw || typeof raw !== "object") return { ok: false, error: "Не указаны параметры расчёта" };
+
+  var film = byId(FILMS, raw.film);
+  if (!film) return { ok: false, error: "Выберите тип плёнки" };
+
+  var w = Number(raw.w);
+  var h = Number(raw.h);
+  var qty = Number(raw.qty);
+  if (!isFinite(w) || w < DIM_MIN || w > DIM_MAX) return { ok: false, error: "Ширина должна быть от 1 до 500 см" };
+  if (!isFinite(h) || h < DIM_MIN || h > DIM_MAX) return { ok: false, error: "Высота должна быть от 1 до 500 см" };
+  if (!isFinite(qty) || qty < QTY_MIN || qty > QTY_MAX || Math.floor(qty) !== qty) {
+    return { ok: false, error: "Количество должно быть целым числом от 1 до 10 000 шт" };
+  }
+
+  var area = round2(w * h);
+  var unit = round2(area * film.rate);
+  var total = round2(unit * qty);
+  return {
+    ok: true,
+    film: film.id,
+    filmName: film.name,
+    rate: film.rate,
+    width: w,
+    height: h,
+    quantity: qty,
+    area: area,
+    unit: unit,
+    total: total
+  };
+}
+
+/* Форматы контакта, которые понимают внутренние инструменты обработки заявок. */
 var CONTACT_RE = /^(?:@[A-Za-z0-9_]{5,32}|[A-Za-z0-9_]{5,32}|\+?\d[\d\s().-]{8,20}|\S+@\S+\.\S{2,})$/;
 
 function contactKind(value) {
@@ -198,6 +234,7 @@ var API = {
   QTY_MAX: QTY_MAX,
   byId: byId,
   calculate: calculate,
+  calculateEstimate: calculateEstimate,
   validate: validate,
   contactKind: contactKind,
   escapeHtml: escapeHtml,
@@ -209,3 +246,4 @@ var API = {
    (панель бота, bot.html) — поэтому прайс выдаётся и в модуль, и в globalThis. */
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof globalThis !== "undefined") globalThis.Pricing = API;
+if (typeof window !== "undefined") window.Pricing = API;
