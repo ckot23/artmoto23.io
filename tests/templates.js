@@ -332,14 +332,19 @@ check("без токена понятно, что делать", function () {
 });
 
 console.log("\n6. Страницы и файлы");
-check("главная страница показывает галерею шаблонов", function () {
+check("главная страница загружает галерею шаблонов по необходимости", function () {
   var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  ["templates.js", "templates/catalog.js", "gallery.js"].forEach(function (marker) {
+  ["templates/catalog.js", "gallery-loader.js"].forEach(function (marker) {
     assert.ok(index.indexOf(marker) !== -1, "главная не подключает " + marker);
   });
   assert.ok(index.indexOf('id="templates-grid"') !== -1, "нет сетки для карточек");
+  assert.strictEqual(index.indexOf('src="templates.js'), -1, "код каталога загружается заранее");
+  assert.strictEqual(index.indexOf('src="gallery.js'), -1, "код галереи загружается заранее");
   /* Витрина спрятана в разметке: пока каталог пуст, на сайте пустых каркасов нет. */
   assert.ok(/id="templates"[^>]*hidden/.test(index), "витрина не спрятана, пока каталог пуст");
+  var loader = fs.readFileSync(path.join(ROOT, "gallery-loader.js"), "utf8");
+  assert.ok(loader.indexOf("templates.js?v=4") !== -1 && loader.indexOf("gallery.js?v=4") !== -1,
+    "галерея не подгружает нужные модули при заполненном каталоге");
   assert.ok(fs.readFileSync(path.join(ROOT, "gallery.js"), "utf8").indexOf("section.hidden = true") !== -1,
     "пустой каталог должен прятать витрину");
   var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");

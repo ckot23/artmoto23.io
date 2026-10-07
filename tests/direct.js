@@ -385,24 +385,30 @@ chain = chain.then(function () {
       });
   });
 
-  check("страница подключает отправку в Telegram и страховочную ссылку на бота", function () {
-    ["pricing.js", "site.js", "site.config.js", "tgdirect.js", "orderlink.js"]
-      .forEach(function (file) {
-        assert.ok(html.indexOf('src="' + file) !== -1, "не подключён " + file);
-      });
+  check("форма загружает отправку и запасную ссылку только по необходимости", function () {
+    ["pricing.js", "site.js", "site.config.js"].forEach(function (file) {
+      assert.ok(html.indexOf('src="' + file) !== -1, "не подключён основной модуль " + file);
+    });
+    assert.strictEqual(html.indexOf('src="tgdirect.js'), -1, "отправка загружается до нажатия кнопки");
+    assert.strictEqual(html.indexOf('src="orderlink.js'), -1, "страховочная ссылка загружается заранее");
     var site = fs.readFileSync(path.join(ROOT, "site.js"), "utf8");
+    assert.ok(site.indexOf("tgdirect.js?v=4") !== -1, "нет загрузки модуля отправки по запросу");
+    assert.ok(site.indexOf("orderlink.js?v=4") !== -1, "нет загрузки запасной ссылки при ошибке");
     assert.ok(site.indexOf("TgDirect") !== -1, "форма не вызывает отправку");
-    assert.ok(site.indexOf("OrderLink.botLink") !== -1, "нет запасного пути через бота");
+    assert.ok(site.indexOf("orderLink.botLink") !== -1, "нет запасного пути через бота");
   });
 
-  check("галерея шаблонов подключена и прячется, пока каталог пуст", function () {
-    ["templates.js", "templates/catalog.js", "gallery.js", "templates-grid"]
-      .forEach(function (marker) {
-        assert.ok(html.indexOf(marker) !== -1, "на главной нет " + marker);
-      });
+  check("галерея загружается только если в каталоге есть шаблоны", function () {
+    ["templates/catalog.js", "gallery-loader.js", "templates-grid"].forEach(function (marker) {
+      assert.ok(html.indexOf(marker) !== -1, "на главной нет " + marker);
+    });
+    assert.strictEqual(html.indexOf('src="templates.js'), -1, "код каталога загружается заранее");
+    assert.strictEqual(html.indexOf('src="gallery.js'), -1, "код галереи загружается заранее");
     assert.ok(/id="templates"[^>]*hidden/.test(html), "витрина шаблонов не спрятана в разметке");
-    var gallery = fs.readFileSync(path.join(ROOT, "gallery.js"), "utf8");
-    assert.ok(gallery.indexOf("section.hidden = true") !== -1, "пустой каталог не прячет витрину");
+    var loader = fs.readFileSync(path.join(ROOT, "gallery-loader.js"), "utf8");
+    assert.ok(loader.indexOf("catalog.length === 0") !== -1, "пустой каталог не прерывает загрузку");
+    assert.ok(loader.indexOf("templates.js?v=4") !== -1 && loader.indexOf("gallery.js?v=4") !== -1,
+      "не подключаются нужные файлы при заполненном каталоге");
   });
 
   check("на странице есть ссылка на Telegram-канал", function () {
@@ -413,15 +419,15 @@ chain = chain.then(function () {
       "канал не вынесен в настройки сайта");
   });
 
-  check("дизайн: неон, 3D и движение включены", function () {
-    ["--cyan", "--violet", "text-shadow", "preserve-3d", "perspective", "@keyframes"]
+  check("неоновая 3D-стилистика без постоянно работающих анимаций", function () {
+    ["--cyan", "--violet", "text-shadow", "preserve-3d", "perspective"]
       .forEach(function (marker) {
         assert.ok(html.indexOf(marker) !== -1, "в стилях нет " + marker);
       });
-    assert.ok(html.indexOf("data-tilt") !== -1, "карточки не наклоняются за курсором");
-    assert.ok(html.indexOf("data-reveal") !== -1, "блоки не появляются при прокрутке");
+    assert.strictEqual(/animation:[^;]*infinite/.test(html), false, "остались бесконечные анимации");
+    assert.strictEqual(html.indexOf("cursor-glow"), -1, "осталось отслеживание курсора");
     assert.ok(html.indexOf("prefers-reduced-motion") !== -1, "нет уважения к настройке движения");
-    assert.ok(html.indexOf('src="effects.js') !== -1, "модуль движения не подключён");
+    assert.strictEqual(html.indexOf('src="effects.js'), -1, "декоративный JS загружается на главной");
   });
 
   check("внутренние инструменты не попали на публичную страницу", function () {
@@ -438,7 +444,7 @@ chain = chain.then(function () {
   });
 
   check("токен бота лежит только в tgdirect.js и настроен", function () {
-    var files = ["index.html", "site.js", "site.config.js", "gallery.js", "effects.js",
+    var files = ["index.html", "site.js", "site.config.js", "gallery-loader.js", "gallery.js",
       "pricing.js", "orderlink.js", "templates.js", "templates/catalog.js"];
     files.forEach(function (name) {
       var text = fs.readFileSync(path.join(ROOT, name), "utf8");
