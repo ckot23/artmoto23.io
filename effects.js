@@ -11,6 +11,11 @@
   "use strict";
 
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var supportsReveal = typeof IntersectionObserver === "function";
+
+  /* Reveal is progressive enhancement: leave everything visible if this file or
+     IntersectionObserver is unavailable, instead of hiding page content. */
+  if (!reduce && supportsReveal) document.documentElement.classList.add("effects-ready");
 
   /* --------------------------------------------------------------------------
      1. Появление блоков при прокрутке
@@ -43,12 +48,14 @@
   function tiltCards() {
     var cards = document.querySelectorAll("[data-tilt]");
     if (!cards.length || reduce) return;
-    if (typeof window.matchMedia !== "function" || !window.matchMedia("(hover: hover)").matches) return;
+    if (typeof window.matchMedia !== "function" ||
+        !window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 761px)").matches) return;
 
     cards.forEach(function (card) {
       var raf = 0;
       var tx = 0;
       var ty = 0;
+      var bounds = null;
 
       function apply() {
         raf = 0;
@@ -56,19 +63,28 @@
         card.style.setProperty("--tilt-y", tx.toFixed(2) + "deg");
       }
 
-      card.addEventListener("pointermove", function (event) {
-        var box = card.getBoundingClientRect();
-        /* −0.5…0.5: центр карточки — ноль, край — единица */
-        tx = ((event.clientX - box.left) / box.width - 0.5) * 2;
-        ty = -((event.clientY - box.top) / box.height - 0.5) * 2;
+      function update(event) {
+        if (!bounds || !bounds.width || !bounds.height || event.pointerType === "touch") return;
+        /* Bounds читаем только при входе в карточку, не на каждом движении мыши. */
+        tx = Math.max(-1, Math.min(1, ((event.clientX - bounds.left) / bounds.width - 0.5) * 2));
+        ty = -Math.max(-1, Math.min(1, ((event.clientY - bounds.top) / bounds.height - 0.5) * 2));
         if (!raf) raf = window.requestAnimationFrame(apply);
-      });
+      }
+
+      card.addEventListener("pointerenter", function (event) {
+        if (event.pointerType === "touch") return;
+        bounds = card.getBoundingClientRect();
+        update(event);
+      }, { passive: true });
+
+      card.addEventListener("pointermove", update, { passive: true });
 
       card.addEventListener("pointerleave", function () {
+        bounds = null;
         tx = 0;
         ty = 0;
         if (!raf) raf = window.requestAnimationFrame(apply);
-      });
+      }, { passive: true });
     });
   }
 
@@ -78,7 +94,8 @@
 
   function cursorGlow() {
     var glow = document.getElementById("cursor-glow");
-    if (!glow || reduce) return;
+    if (!glow || reduce || typeof window.matchMedia !== "function" ||
+        !window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 761px)").matches) return;
 
     var x = window.innerWidth / 2;
     var y = window.innerHeight / 3;
