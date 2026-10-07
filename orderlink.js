@@ -27,9 +27,11 @@ var SEP = "|";
 var START_LIMIT = 64;                 /* символов в параметре ?start= */
 var RAW_LIMIT = 48;                   /* 48 байт → ровно 64 символа base64url */
 
-/* Однобуквенные коды значений прайса. */
+/* Однобуквенные коды значений прайса.
+   Плёнок три: matte, gloss, metallic. Коды m, g и M не меняем — с ними
+   продолжают открываться ссылки, собранные до сокращения списка. */
 var CODES = {
-  film: { matte: "m", gloss: "g", transparent: "t", metallic: "M", reflective: "r" },
+  film: { matte: "m", gloss: "g", metallic: "M" },
   design: { own: "o", text: "t", logo: "l", catalog: "c" },
   color: { black: "k", white: "w", red: "r", blue: "b", green: "g", yellow: "y", orange: "o", silver: "s", gold: "z", fullcolor: "f" },
   shape: { rectangle: "r", rounded: "d", circle: "c" }

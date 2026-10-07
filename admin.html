@@ -173,7 +173,7 @@ select:focus, input[type="number"]:focus { outline: none; border-color: var(--ac
           <span class="tile__icon" aria-hidden="true">🖼️</span>
           <span>
             <span class="tile__title">Галерея шаблонов</span>
-            <span class="tile__text">Загрузить фото примеров, задать размер и цвет, опубликовать на сайте</span>
+            <span class="tile__text">Загрузить фото примеров, задать размер и цвет, опубликовать на сайте — карточки появятся в блоке «Готовые шаблоны»</span>
           </span>
         </button>
         <button class="tile" id="show-password" type="button">
@@ -204,6 +204,10 @@ select:focus, input[type="number"]:focus { outline: none; border-color: var(--ac
     <!-- НАСТРОЙКИ -->
     <div class="card hidden" id="settings-card">
       <h2>Настройки приёма заявок</h2>
+      <p class="hint">Эти поля нужны панели бота (<a href="bot.html">bot.html</a>). Сайт отправляет
+         заявки сам, напрямую из браузера, поэтому его токен и chat_id лежат открытым текстом
+         в файле <b>tgdirect.js</b> в репозитории. Поменяли бота или модератора — правьте
+         начало этого файла и загружайте на GitHub.</p>
       <label>
         <span class="label">Токен бота</span>
         <input id="s-token" type="password" autocomplete="off" spellcheck="false" placeholder="1234567890:AAH…"/>

@@ -332,10 +332,16 @@ check("без токена понятно, что делать", function () {
 });
 
 console.log("\n6. Страницы и файлы");
-check("главная страница не загружает галерею шаблонов", function () {
+check("главная страница показывает галерею шаблонов", function () {
   var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  ["templates.js", "templates/catalog.js", "gallery-grid", "Готовые шаблоны"]
-    .forEach(function (marker) { assert.strictEqual(index.indexOf(marker), -1, "на главной остался " + marker); });
+  ["templates.js", "templates/catalog.js", "gallery.js"].forEach(function (marker) {
+    assert.ok(index.indexOf(marker) !== -1, "главная не подключает " + marker);
+  });
+  assert.ok(index.indexOf('id="templates-grid"') !== -1, "нет сетки для карточек");
+  /* Витрина спрятана в разметке: пока каталог пуст, на сайте пустых каркасов нет. */
+  assert.ok(/id="templates"[^>]*hidden/.test(index), "витрина не спрятана, пока каталог пуст");
+  assert.ok(fs.readFileSync(path.join(ROOT, "gallery.js"), "utf8").indexOf("section.hidden = true") !== -1,
+    "пустой каталог должен прятать витрину");
   var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
   assert.ok(admin.indexOf('src="templatesync.js"') !== -1, "внутренние инструменты публикации не загрузились");
 });
@@ -347,6 +353,18 @@ check("каталог пуст и демо-фото удалены", function ()
   assert.ok(fs.existsSync(imgDir), "нет папки фото");
   var photos = fs.readdirSync(imgDir).filter(function (file) { return /\.(?:jpg|jpeg|png|webp)$/i.test(file); });
   assert.deepStrictEqual(photos, [], "в папке остались демо-фото");
+});
+check("галерея умеет показать опубликованный шаблон", function () {
+  /* Один настоящий шаблон должен был бы отрисоваться: проверяем, что
+     витрина читает каталог, строит карточку и подставляет настройки. */
+  var gallery = fs.readFileSync(path.join(ROOT, "gallery.js"), "utf8");
+  ["catalogFromGlobal", "templates-grid", "card(", "data-template", "applySettings"]
+    .forEach(function (marker) {
+      assert.ok(gallery.indexOf(marker) !== -1, "в галерее нет " + marker);
+    });
+  var list = T.parseCatalog(T.serializeCatalog([template()]));
+  assert.strictEqual(list.length, 1, "шаблон не проходит нормализацию");
+  assert.strictEqual(list[0].settings.film, "matte");
 });
 check("в админке есть галерея: фото, список и публикация", function () {
   var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
@@ -379,13 +397,15 @@ check("шаблоны в админке не содержат токенов и 
 });
 check("в каталоге нет опубликованных примеров", function () {
   var list = T.parseCatalog(fs.readFileSync(path.join(ROOT, "templates", "catalog.js"), "utf8"));
-  assert.deepStrictEqual(list, []);
+  assert.deepStrictEqual(list, [], "каталог должен быть пустым, пока владелец не опубликует шаблоны");
   var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  assert.strictEqual(index.indexOf("SITE_TEMPLATES"), -1, "главная страница не должна загружать каталог");
+  assert.ok(index.indexOf("templates/catalog.js") !== -1, "главная должна читать каталог");
+  assert.ok(index.indexOf("SITE_TEMPLATES") === -1, "каталог не объявляется вручную в разметке");
 });
 check("в галерее не бывает своих копий прайса и токенов", function () {
   var text = fs.readFileSync(path.join(ROOT, "templates.js"), "utf8")
-    + fs.readFileSync(path.join(ROOT, "templatesync.js"), "utf8");
+    + fs.readFileSync(path.join(ROOT, "templatesync.js"), "utf8")
+    + fs.readFileSync(path.join(ROOT, "gallery.js"), "utf8");
   assert.ok(!/rate:\s*\d/.test(text), "в шаблонах завелись ставки плёнки");
   assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(text), "в шаблонах завёлся токен");
   assert.ok(!/password\s*[:=]\s*"/.test(text), "в шаблонах завёлся пароль");
