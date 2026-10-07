@@ -2,7 +2,7 @@
   "name": "artmoto23-stickers",
   "version": "2.0.0",
   "private": true,
-  "description": "Сайт-конструктор наклеек ORACAL: расчёт цены и отправка заявок прямо в Telegram, без сервера",
+  "description": "Информационный сайт о виниловой плёнке ORACAL с калькулятором стоимости по площади",
   "main": "index.html",
   "scripts": {
     "start": "npx --yes serve -l 8080 .",

@@ -332,21 +332,21 @@ check("без токена понятно, что делать", function () {
 });
 
 console.log("\n6. Страницы и файлы");
-check("галерею подключают страницы, а не сервер", function () {
-  /* Сервера больше нет: сайт статический, поэтому скрипты галереи должны быть
-     подключены прямо в страницах — иначе на GitHub Pages галереи не будет. */
+check("главная страница не загружает галерею шаблонов", function () {
   var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  ["templates.js", "templates/catalog.js", "gallery-grid", "Готовые шаблоны"]
+    .forEach(function (marker) { assert.strictEqual(index.indexOf(marker), -1, "на главной остался " + marker); });
   var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
-  assert.ok(index.indexOf('src="templates.js"') !== -1, "сайт не подключает templates.js");
-  assert.ok(admin.indexOf('src="templatesync.js"') !== -1, "админка не подключает templatesync.js");
+  assert.ok(admin.indexOf('src="templatesync.js"') !== -1, "внутренние инструменты публикации не загрузились");
 });
-check("файлы галереи существуют и подключаются на сайте", function () {
+check("каталог пуст и демо-фото удалены", function () {
   assert.ok(fs.existsSync(path.join(ROOT, "templates", "catalog.js")), "нет файла каталога");
-  assert.ok(fs.existsSync(path.join(ROOT, "templates", "img")), "нет папки фото");
-  var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  ["templates.js", "templates/catalog.js"].forEach(function (file) {
-    assert.ok(index.indexOf(file) !== -1, "на сайте не подключён " + file);
-  });
+  var list = T.parseCatalog(fs.readFileSync(path.join(ROOT, "templates", "catalog.js"), "utf8"));
+  assert.deepStrictEqual(list, [], "в публичном каталоге остались примеры");
+  var imgDir = path.join(ROOT, "templates", "img");
+  assert.ok(fs.existsSync(imgDir), "нет папки фото");
+  var photos = fs.readdirSync(imgDir).filter(function (file) { return /\.(?:jpg|jpeg|png|webp)$/i.test(file); });
+  assert.deepStrictEqual(photos, [], "в папке остались демо-фото");
 });
 check("в админке есть галерея: фото, список и публикация", function () {
   var admin = fs.readFileSync(path.join(ROOT, "admin.html"), "utf8");
@@ -377,17 +377,11 @@ check("шаблоны в админке не содержат токенов и 
   assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(admin), "в админке завёлся токен бота");
   assert.ok(!/github_pat_[A-Za-z0-9_]{20,}/.test(admin), "в админке завёлся токен GitHub");
 });
-check("демо-каталог: фото на месте, поля заполнены", function () {
+check("в каталоге нет опубликованных примеров", function () {
   var list = T.parseCatalog(fs.readFileSync(path.join(ROOT, "templates", "catalog.js"), "utf8"));
-  assert.ok(list.length >= 1, "каталог пуст — галереи на сайте не будет");
-  list.forEach(function (item) {
-    assert.ok(fs.existsSync(path.join(ROOT, item.img)), "нет файла " + item.img);
-    var size = fs.statSync(path.join(ROOT, item.img)).size;
-    assert.ok(size > 1000 && size < 400 * 1024, "фото " + item.img + " странного размера: " + size);
-    assert.ok(T.priceOf(item.settings,
-      function (config) { return Pricing.calculate(T.toOrder(config)); }).total > 0,
-      "у шаблона " + item.id + " не считается цена");
-  });
+  assert.deepStrictEqual(list, []);
+  var index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  assert.strictEqual(index.indexOf("SITE_TEMPLATES"), -1, "главная страница не должна загружать каталог");
 });
 check("в галерее не бывает своих копий прайса и токенов", function () {
   var text = fs.readFileSync(path.join(ROOT, "templates.js"), "utf8")
