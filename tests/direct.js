@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 "use strict";
 /* ============================================================================
-   Проверки прайса сайта и изолированных внутренних утилит.
+   Проверки прайса сайта и отправки заявки в Telegram.
 
-   Главная страница больше не содержит оформления заказа и не загружает
-   tgdirect.js. Старый модуль отправки проверяется отдельно заглушкой Telegram,
-   чтобы случайное изменение внутренних файлов не ломало тесты проекта.
+   Проверяем:
+     • три плёнки с новыми ставками и минимальный заказ 500 ₽;
+     • что калькулятор на странице и заявка модератору считаются по одной
+       формуле (иначе клиент видит одну сумму, а Telegram — другую);
+     • что форма заказа действительно уходит боту и не притворяется, что
+       ушла, если Telegram не ответил.
+
+   Telegram подменяется заглушкой: интернет и настоящий токен не нужны.
    ========================================================================= */
 
 var assert = require("assert");
@@ -78,24 +83,64 @@ var html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 
 console.log("\n1. Прайс и расчёт стоимости плёнки");
 
-check("матовая плёнка стоит 3 ₽ за см²", function () {
-  assert.strictEqual(P.byId(P.FILMS, "matte").rate, 3);
-  assert.ok(/data-film-rate="matte">3 ₽\/см²/.test(html), "на карточке не указана новая ставка");
+check("в прайсе ровно три плёнки", function () {
+  assert.deepStrictEqual(P.FILMS.map(function (film) { return film.id; }),
+    ["matte", "gloss", "metallic"]);
+  assert.deepStrictEqual(P.FILMS.map(function (film) { return film.rate; }), [3, 4, 6]);
 });
 
-check("10×10 см матовой плёнки × 1 шт → 300 ₽", function () {
+check("ставки на странице совпадают с прайсом", function () {
+  assert.ok(/data-film-rate="matte">3 ₽\/см²/.test(html), "на карточке матовой не указана ставка 3 ₽");
+  assert.ok(/data-film-rate="gloss">4 ₽\/см²/.test(html), "на карточке глянцевой не указана ставка 4 ₽");
+  assert.ok(/data-film-rate="metallic">6 ₽\/см²/.test(html), "на карточке металлика не указана ставка 6 ₽");
+  assert.strictEqual(html.indexOf("Светоотражающая"), -1, "осталась плёнка, которой больше нет");
+  assert.strictEqual(html.indexOf("Прозрачная"), -1, "осталась плёнка, которой больше нет");
+});
+
+check("минимальный заказ — 500 ₽", function () {
+  assert.strictEqual(P.MIN_ORDER_PRICE, 500);
   var result = P.calculateEstimate({ film: "matte", w: 10, h: 10, qty: 1 });
-  assert.strictEqual(result.ok, true);
-  assert.strictEqual(result.area, 100);
   assert.strictEqual(result.unit, 300);
-  assert.strictEqual(result.total, 300);
+  assert.strictEqual(result.total, 500, "минимум не применился");
+  assert.strictEqual(result.minApplied, true);
+  assert.strictEqual(result.toMin, 200);
+});
+
+check("минимальный заказ показывается, когда он достигнут", function () {
+  var result = P.calculateEstimate({ film: "metallic", w: 10, h: 10, qty: 1 });
+  assert.strictEqual(result.total, 600, "свыше минимума сумма должна остаться своей");
+  assert.strictEqual(result.minApplied, false);
 });
 
 check("калькулятор учитывает ставку выбранной плёнки и количество", function () {
   var result = P.calculateEstimate({ film: "gloss", w: 10, h: 10, qty: 2 });
-  assert.strictEqual(result.rate, 5.5);
-  assert.strictEqual(result.unit, 550);
-  assert.strictEqual(result.total, 1100);
+  assert.strictEqual(result.rate, 4);
+  assert.strictEqual(result.unit, 400);
+  assert.strictEqual(result.total, 800);
+});
+
+check("скидка за тираж видна и в расчёте, и в заявке", function () {
+  var result = P.calculateEstimate({ film: "matte", w: 10, h: 10, qty: 50 });
+  assert.strictEqual(result.discountPercent, 32);
+  assert.strictEqual(result.withoutDiscount, 15000);
+  assert.strictEqual(result.total, 10200);
+});
+
+/* Ключевая проверка: цифра на экране клиента и цифра в сообщении модератору
+   обязаны совпадать, иначе заявка приходит с «неправильной» суммой. */
+check("расчёт на сайте и заявка модератору дают одну сумму", function () {
+  [
+    { film: "matte", design: "own", color: "black", w: 20, h: 15, qty: 10 },
+    { film: "gloss", design: "logo", color: "gold", w: 30, h: 20, qty: 50 },
+    { film: "metallic", design: "own", color: "fullcolor", w: 10, h: 10, qty: 1 }
+  ].forEach(function (config) {
+    var estimate = P.calculateEstimate(config);
+    var order = P.calculate(config);
+    assert.strictEqual(estimate.ok, true);
+    assert.strictEqual(estimate.total, order.total,
+      "сайт показал " + estimate.total + ", а в заявке " + order.total);
+    assert.strictEqual(estimate.unit, order.unit, "цена за штуку разошлась");
+  });
 });
 
 check("неверные размеры и количество отклоняются", function () {
@@ -141,17 +186,23 @@ check("изменение полей немедленно обновляет ц�
   var context = { window: { Pricing: P }, document: document, Pricing: P };
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, "site.js"), "utf8"), context, { filename: "site.js" });
 
-  assert.strictEqual(elements["total-price"].textContent, "300 ₽", "начальное значение не отрисовано");
-  elements.width.value = "20";
-  elements.width.listeners.input();
-  assert.strictEqual(elements["total-price"].textContent, "600 ₽", "изменение ширины не пересчитало стоимость");
+  /* 10×10 матовой × 1 шт = 300 ₽ материала, но показываем минимум 500 ₽ */
+  assert.strictEqual(elements["total-price"].textContent, "500 ₽", "начальное значение не отрисовано");
+  assert.strictEqual(elements["unit-price"].textContent, "300 ₽", "цена за штуку не показана");
+
   elements.quantity.value = "2";
   elements.quantity.listeners.change();
-  assert.strictEqual(elements["total-price"].textContent.replace(/\u00A0/g, " "), "1 200 ₽", "изменение количества не пересчитало стоимость");
-  elements["film-type"].value = "gloss";
+  assert.strictEqual(elements["total-price"].textContent, "600 ₽", "изменение количества не пересчитало стоимость");
+
+  elements.width.value = "20";
+  elements.width.listeners.input();
+  assert.strictEqual(elements["total-price"].textContent.replace(/\u00A0/g, " "), "1 200 ₽",
+    "изменение ширины не пересчитало стоимость");
+
+  elements["film-type"].value = "metallic";
   elements["film-type"].listeners.change();
-  assert.strictEqual(elements["rate-value"].textContent, "5,5 ₽", "ставка выбранной плёнки не обновилась");
-  assert.strictEqual(elements["total-price"].textContent.replace(/\u00A0/g, " "), "2 200 ₽");
+  assert.strictEqual(elements["rate-value"].textContent, "6 ₽", "ставка выбранной плёнки не обновилась");
+  assert.strictEqual(elements["total-price"].textContent.replace(/\u00A0/g, " "), "2 400 ₽");
 });
 
 /* --------------------------------------------------------------------------
@@ -163,8 +214,8 @@ console.log("\n2. Внутренний расчёт и проверка поле
 check("10×10, матовая, 10 шт → 2 460 ₽", function () {
   assert.strictEqual(P.calculate({ film: "matte", design: "own", color: "black", w: 10, h: 10, qty: 10 }).total, 2460);
 });
-check("5×5, 1 шт → минимальные 300 ₽", function () {
-  assert.strictEqual(P.calculate({ film: "matte", design: "own", color: "black", w: 5, h: 5, qty: 1 }).total, 300);
+check("5×5, 1 шт → минимальные 500 ₽", function () {
+  assert.strictEqual(P.calculate({ film: "matte", design: "own", color: "black", w: 5, h: 5, qty: 1 }).total, 500);
 });
 check("заявка без имени и контакта не отправляется", function () {
   assert.strictEqual(P.validate({ film: "matte", design: "own", color: "black", w: 10, h: 10, qty: 1, name: "И", contact: "@petr_777" }).ok, false);
@@ -319,36 +370,85 @@ chain = chain.then(function () {
 });
 
 /* --------------------------------------------------------------------------
-   5. На главной нет шаблонов и оформления заказа
+   5. На главной есть форма заказа, галерея шаблонов и ссылка на канал
    ----------------------------------------------------------------------- */
 
 chain = chain.then(function () {
-  console.log("\n5. Главная страница — информация и калькулятор");
+  console.log("\n5. Главная страница: заказ, шаблоны, канал");
 
-  check("нет формы, кнопок и интеграции для оформления заказа", function () {
-    ["order-form", "order-send", "panel-order", "TgDirect.send(", "tgdirect.js", "customer-contact"]
+  check("форма заказа на месте и связана с расчётом", function () {
+    ["order-form", "order-name", "order-contact", "order-delivery", "order-comment",
+      "order-design", "order-color", "order-shape", "order-send", "order-status",
+      "order-summary", "film-type", "width", "height", "quantity", "total-price"]
+      .forEach(function (id) {
+        assert.ok(html.indexOf('id="' + id + '"') !== -1, "нет элемента " + id);
+      });
+  });
+
+  check("страница подключает отправку в Telegram и страховочную ссылку на бота", function () {
+    ["pricing.js", "site.js", "site.config.js", "tgdirect.js", "orderlink.js"]
+      .forEach(function (file) {
+        assert.ok(html.indexOf('src="' + file) !== -1, "не подключён " + file);
+      });
+    var site = fs.readFileSync(path.join(ROOT, "site.js"), "utf8");
+    assert.ok(site.indexOf("TgDirect") !== -1, "форма не вызывает отправку");
+    assert.ok(site.indexOf("OrderLink.botLink") !== -1, "нет запасного пути через бота");
+  });
+
+  check("галерея шаблонов подключена и прячется, пока каталог пуст", function () {
+    ["templates.js", "templates/catalog.js", "gallery.js", "templates-grid"]
+      .forEach(function (marker) {
+        assert.ok(html.indexOf(marker) !== -1, "на главной нет " + marker);
+      });
+    assert.ok(/id="templates"[^>]*hidden/.test(html), "витрина шаблонов не спрятана в разметке");
+    var gallery = fs.readFileSync(path.join(ROOT, "gallery.js"), "utf8");
+    assert.ok(gallery.indexOf("section.hidden = true") !== -1, "пустой каталог не прячет витрину");
+  });
+
+  check("на странице есть ссылка на Telegram-канал", function () {
+    var channel = "https://t.me/+aZLbDN640q5hNGYy";
+    assert.ok(html.indexOf(channel) !== -1, "нет ссылки на канал");
+    assert.ok(html.split(channel).length - 1 >= 2, "канал упомянут меньше двух раз");
+    assert.ok(fs.readFileSync(path.join(ROOT, "site.config.js"), "utf8").indexOf(channel) !== -1,
+      "канал не вынесен в настройки сайта");
+  });
+
+  check("дизайн: неон, 3D и движение включены", function () {
+    ["--cyan", "--violet", "text-shadow", "preserve-3d", "perspective", "@keyframes"]
+      .forEach(function (marker) {
+        assert.ok(html.indexOf(marker) !== -1, "в стилях нет " + marker);
+      });
+    assert.ok(html.indexOf("data-tilt") !== -1, "карточки не наклоняются за курсором");
+    assert.ok(html.indexOf("data-reveal") !== -1, "блоки не появляются при прокрутке");
+    assert.ok(html.indexOf("prefers-reduced-motion") !== -1, "нет уважения к настройке движения");
+    assert.ok(html.indexOf('src="effects.js') !== -1, "модуль движения не подключён");
+  });
+
+  check("внутренние инструменты не попали на публичную страницу", function () {
+    ["admin.html", "bot.html", "botcore.js", "botpanel.js", "adminlock.js", "templatesync.js"]
       .forEach(function (marker) {
         assert.strictEqual(html.indexOf(marker), -1, "в index.html остался " + marker);
       });
   });
 
-  check("нет галереи шаблонов и демо-примеров", function () {
-    ["templates.js", "templates/catalog.js", "Готовые шаблоны", "gallery-grid", "data-template"]
-      .forEach(function (marker) {
-        assert.strictEqual(html.indexOf(marker), -1, "в index.html остался " + marker);
-      });
-  });
-
-  check("вместо лишних действий доступны материалы и калькулятор", function () {
-    ["id=\"materials\"", "id=\"about\"", "id=\"calculator\"", "id=\"film-type\"", "id=\"total-price\""]
-      .forEach(function (marker) { assert.ok(html.indexOf(marker) !== -1, "нет " + marker); });
-    assert.ok(html.indexOf("3 ₽/см²") !== -1, "не отображается базовая цена");
-  });
-
-  check("серверных файлов в репозитории больше нет", function () {
+  check("серверных файлов в репозитории по-прежнему нет", function () {
     ["server.js", "bot.js", "env.js", "render.yaml", "Dockerfile", ".env.example"].forEach(function (name) {
       assert.ok(!fs.existsSync(path.join(ROOT, name)), "остался файл " + name);
     });
+  });
+
+  check("токен бота лежит только в tgdirect.js и настроен", function () {
+    var files = ["index.html", "site.js", "site.config.js", "gallery.js", "effects.js",
+      "pricing.js", "orderlink.js", "templates.js", "templates/catalog.js"];
+    files.forEach(function (name) {
+      var text = fs.readFileSync(path.join(ROOT, name), "utf8");
+      assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(text), "токен найден в " + name);
+    });
+    /* Проверяем сам файл: к этому моменту предыдущие тесты уже подменили
+     настройки модуля заглушкой, поэтому состояние в памяти не годится. */
+    var direct = fs.readFileSync(path.join(ROOT, "tgdirect.js"), "utf8");
+    assert.ok(/var BOT_TOKEN = "\d{8,}:[A-Za-z0-9_-]{30,}"/.test(direct), "в tgdirect.js нет токена бота");
+    assert.ok(/var CHAT_ID = "7114829971"/.test(direct), "в tgdirect.js не задан chat_id модератора");
   });
 });
 

@@ -46,7 +46,7 @@
   /* Справочники id на случай, если рядом нет Pricing.
      Основной источник — Pricing.FILMS / Pricing.DESIGNS / Pricing.COLORS. */
   var FALLBACK_IDS = {
-    films: ["matte", "gloss", "transparent", "metallic", "reflective"],
+    films: ["matte", "gloss", "metallic"],
     designs: ["own", "text", "logo", "catalog"],
     colors: ["black", "white", "red", "blue", "green", "yellow", "orange", "silver", "gold", "fullcolor"],
     shapes: ["rectangle", "rounded", "circle"]

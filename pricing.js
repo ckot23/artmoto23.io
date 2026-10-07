@@ -2,17 +2,19 @@
 /* ============================================================================
    Единый прайс материалов и расчёты.
 
-   Главный сайт использует calculateEstimate() для простой оценки стоимости
-   плёнки по площади. Остальные функции сохраняют совместимость с внутренними
-   инструментами проекта.
+   На сайте три плёнки: матовая, глянцевая и металлик. Любой расчёт — и в
+   калькуляторе, и в заявке модератору — проходит через минимальную сумму
+   заказа, поэтому цифры на странице и в Telegram всегда совпадают.
+
+   Остальные функции (calculate, validate, orderMessage) сохраняют совместимость
+   с внутренними инструментами проекта.
    ========================================================================= */
 
+/* Только три фактуры — всё, что реально печатаем и клеим. */
 var FILMS = [
-  { id: "matte",       name: "Матовая",         rate: 3.0 },
-  { id: "gloss",       name: "Глянцевая",       rate: 5.5 },
-  { id: "transparent", name: "Прозрачная",      rate: 6.0 },
-  { id: "metallic",    name: "Металлик",        rate: 7.0 },
-  { id: "reflective",  name: "Светоотражающая", rate: 8.0 }
+  { id: "matte",    name: "Матовая",   rate: 3.0 },
+  { id: "gloss",    name: "Глянцевая", rate: 4.0 },
+  { id: "metallic", name: "Металлик",  rate: 6.0 }
 ];
 
 var DESIGNS = [
@@ -39,7 +41,9 @@ var SHAPES = { rectangle: "Прямоугольник", rounded: "Скруглё
 
 var COLOR_MULT = { fullcolor: 1.3, gold: 1.15, silver: 1.15 };
 var TIERS = [[100, 0.6], [50, 0.68], [25, 0.75], [10, 0.82], [5, 0.9], [1, 1]];
-var MIN_ORDER_PRICE = 300;
+
+/* Минимальный заказ: ниже этой суммы не работаем ни с одним материалом. */
+var MIN_ORDER_PRICE = 500;
 
 var DIM_MIN = 1;
 var DIM_MAX = 500;
@@ -60,23 +64,64 @@ function round5(value) {
   return Math.round(value / 5) * 5;
 }
 
-/* Совместимый расчёт для внутренних инструментов работы с заявками.
-   Публичная страница использует calculateEstimate() ниже. */
-function calculate(order) {
-  var film = byId(FILMS, order.film);
-  var design = byId(DESIGNS, order.design);
-  var area = order.w * order.h;
-  var colorMult = COLOR_MULT[order.color] || 1;
-  var rawUnit = area * film.rate * design.mult * colorMult;
-  var unit = Math.max(0, round5(rawUnit));
-  var discount = quantityMultiplier(order.qty);
-  var total = Math.max(MIN_ORDER_PRICE, round5(unit * order.qty * discount) + design.setup);
+/* ---------------------------------------------------------------------------
+   quote() — единственная формула цены во всём проекте.
+
+   Её зовут и калькулятор на сайте, и панель бота, и проверка заявки, поэтому
+   цифра на экране клиента и цифра в сообщении модератору не могут разойтись:
+   площадь × ставка × множители → округление до 5 ₽ → скидка за тираж →
+   подготовка макета → минимум 500 ₽.
+
+   Значения, которых нет в запросе, берутся дефолтными: «Свой файл» без
+   надбавки и обычный чёрный цвет без множителя.
+   ------------------------------------------------------------------------ */
+function quote(input) {
+  var film = byId(FILMS, input.film);
+  if (!film) return null;
+  var design = byId(DESIGNS, input.design) || byId(DESIGNS, "own");
+  var colorMult = COLOR_MULT[input.color] || 1;
+
+  var w = Number(input.w);
+  var h = Number(input.h);
+  var qty = Number(input.qty);
+  if (!isFinite(w) || !isFinite(h) || !isFinite(qty)) return null;
+
+  var area = w * h;
+  var unit = Math.max(0, round5(area * film.rate * design.mult * colorMult));
+  var discount = quantityMultiplier(qty);
+  var gross = round5(unit * qty * discount) + design.setup;
+  var total = Math.max(MIN_ORDER_PRICE, gross);
+
   return {
+    film: film,
+    design: design,
+    colorMult: colorMult,
+    area: area,
     unit: unit,
     setup: design.setup,
     discountPercent: Math.round((1 - discount) * 100),
+    gross: gross,
     total: total,
-    area: area
+    minApplied: total > gross,
+    /* Сколько не хватает до минимального заказа — для подсказки на сайте. */
+    toMin: Math.max(0, MIN_ORDER_PRICE - gross),
+    minOrder: MIN_ORDER_PRICE
+  };
+}
+
+/* Совместимый расчёт для внутренних инструментов работы с заявками.
+   Публичная страница использует calculateEstimate() ниже. */
+function calculate(order) {
+  var price = quote(order);
+  return {
+    unit: price.unit,
+    setup: price.setup,
+    discountPercent: price.discountPercent,
+    total: price.total,
+    gross: price.gross,
+    minApplied: price.minApplied,
+    minOrder: price.minOrder,
+    area: price.area
   };
 }
 
@@ -84,13 +129,13 @@ function round2(value) {
   return Math.round((value + 1e-10) * 100) / 100;
 }
 
-/* Расчёт стоимости материала на главной странице: площадь × ставка × тираж.
-   В нём нет минимальной суммы, скидок или стоимости оформления. */
+/* Расчёт для калькулятора на главной странице. Формула та же, что и в заявке
+   (quote выше), поэтому показанная сумма и сумма в Telegram совпадают.
+   Дизайн и цвет необязательны: без них считаем «Свой файл» и обычный цвет. */
 function calculateEstimate(raw) {
   if (!raw || typeof raw !== "object") return { ok: false, error: "Не указаны параметры расчёта" };
 
-  var film = byId(FILMS, raw.film);
-  if (!film) return { ok: false, error: "Выберите тип плёнки" };
+  if (!byId(FILMS, raw.film)) return { ok: false, error: "Выберите тип плёнки" };
 
   var w = Number(raw.w);
   var h = Number(raw.h);
@@ -101,20 +146,32 @@ function calculateEstimate(raw) {
     return { ok: false, error: "Количество должно быть целым числом от 1 до 10 000 шт" };
   }
 
-  var area = round2(w * h);
-  var unit = round2(area * film.rate);
-  var total = round2(unit * qty);
+  var price = quote({
+    film: raw.film, design: raw.design, color: raw.color, shape: raw.shape,
+    w: w, h: h, qty: qty
+  });
+  if (!price) return { ok: false, error: "Не удалось рассчитать стоимость" };
+
   return {
     ok: true,
-    film: film.id,
-    filmName: film.name,
-    rate: film.rate,
+    film: price.film.id,
+    filmName: price.film.name,
+    design: price.design.id,
+    designName: price.design.name,
+    rate: price.film.rate,
     width: w,
     height: h,
     quantity: qty,
-    area: area,
-    unit: unit,
-    total: total
+    area: round2(price.area),
+    unit: price.unit,
+    setup: price.setup,
+    discountPercent: price.discountPercent,
+    /* Цена без скидки — чтобы показать клиенту, сколько он экономит. */
+    withoutDiscount: round5(price.unit * qty),
+    minOrder: price.minOrder,
+    minApplied: price.minApplied,
+    toMin: price.toMin,
+    total: price.total
   };
 }
 
@@ -204,8 +261,13 @@ function orderMessage(order, price, meta) {
   if (price.setup > 0) lines.push("• Разработка макета: " + money(price.setup));
   lines.push("");
   lines.push("💰 <b>Итого: " + money(price.total) + "</b> (" + money(price.unit) + "/шт)");
+  if (price.minApplied) {
+    lines.push("📌 Материал вышел дешевле минимума — принято по минимуму " + money(price.minOrder || MIN_ORDER_PRICE));
+  }
+  /* Сайт и заявка считают по одной формуле, поэтому строка появляется только
+     если сумму в заявке подменили — тогда цифру нужно пересчитать. */
   if (order.clientTotal != null && order.clientTotal !== price.total) {
-    lines.push("⚠️ На сайте клиент видел " + money(order.clientTotal) + " — проверьте расчёт");
+    lines.push("⚠️ В заявке указана другая сумма: " + money(order.clientTotal) + " — пересчитайте по прайсу");
   }
   if (order.comment) {
     lines.push("");
@@ -233,6 +295,7 @@ var API = {
   QTY_MIN: QTY_MIN,
   QTY_MAX: QTY_MAX,
   byId: byId,
+  quote: quote,
   calculate: calculate,
   calculateEstimate: calculateEstimate,
   validate: validate,
