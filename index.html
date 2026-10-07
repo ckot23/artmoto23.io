@@ -17,7 +17,7 @@
       /* Основа */
       --bg: #05060d;
       --bg-2: #080a14;
-      --panel: rgba(17, 21, 38, .72);
+      --panel: rgba(17, 21, 38, .86);
       --panel-solid: #0c0f1c;
       --line: rgba(150, 180, 255, .13);
       --line-strong: rgba(160, 200, 255, .28);
@@ -48,7 +48,6 @@
 
       /* Движение */
       --ease: cubic-bezier(.22, 1, .36, 1);
-      --mid: 8s;
     }
 
     /* =====================================================================
@@ -99,14 +98,14 @@
     .skip-link:focus { transform: translateY(0); }
 
     /* =====================================================================
-       ФОН: аврора, сетка, курсор
+       ФОН: статичная аврора и сетка
        ===================================================================== */
     .backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 
     .aurora {
       position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%;
-      /* Мягкий статичный свет: большая размытая анимация постоянно перерисовывала фон. */
-      filter: blur(56px); opacity: .42;
+      /* Статичный мягкий свет: не создаём непрерывные перерисовки фона. */
+      filter: blur(48px); opacity: .42;
     }
     .aurora--one { top: -26vmax; left: -14vmax; background: radial-gradient(circle, rgba(168, 85, 247, .55), transparent 65%); }
     .aurora--two { top: 8vmax; right: -20vmax; background: radial-gradient(circle, rgba(34, 211, 238, .45), transparent 65%); }
@@ -131,20 +130,6 @@
       opacity: .5;
     }
 
-    #cursor-glow {
-      position: fixed; z-index: -1; top: 0; left: 0;
-      width: 520px; height: 520px; margin: -260px 0 0 -260px;
-      border-radius: 50%; pointer-events: none;
-      background: radial-gradient(circle, rgba(34, 211, 238, .13), rgba(168, 85, 247, .07) 45%, transparent 68%);
-    }
-
-    @media (hover: hover) and (pointer: fine) and (min-width: 761px) {
-      #cursor-glow { will-change: transform; }
-    }
-    @media (hover: none), (pointer: coarse), (max-width: 760px) {
-      #cursor-glow { display: none; }
-    }
-
     /* =====================================================================
        ШАПКА
        ===================================================================== */
@@ -152,8 +137,8 @@
       position: sticky; z-index: 40; top: 0;
       padding-top: env(safe-area-inset-top, 0px);
       border-bottom: 1px solid var(--line);
-      background: rgba(5, 6, 13, .82);
-      backdrop-filter: blur(12px) saturate(145%);
+      /* Непрозрачный стеклянный фон без размытия контента при каждом скролле. */
+      background: rgba(5, 6, 13, .92);
     }
     .site-header::after {
       content: ""; position: absolute; inset: auto 0 -1px; height: 1px;
@@ -242,9 +227,7 @@
     .kicker::before {
       content: ""; width: 8px; height: 8px; border-radius: 50%;
       background: var(--cyan); box-shadow: 0 0 12px var(--cyan);
-      animation: blink 2.4s ease-in-out infinite;
     }
-    @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
     .kicker--muted { color: var(--muted-2); }
     .kicker--muted::before { background: var(--violet); box-shadow: 0 0 12px var(--violet); }
 
@@ -297,20 +280,14 @@
       border: 1px solid rgba(34, 211, 238, .28);
       box-shadow: inset 0 0 40px rgba(34, 211, 238, .12), 0 0 30px rgba(34, 211, 238, .12);
       transform: rotateX(72deg);
-      animation: ring-spin var(--mid) linear infinite;
     }
     .scene__ring--a { width: 340px; height: 340px; }
-    .scene__ring--b { width: 250px; height: 250px; border-color: rgba(168, 85, 247, .32); animation-duration: calc(var(--mid) * 1.6); animation-direction: reverse; }
-    @keyframes ring-spin { to { transform: rotateX(72deg) rotateZ(360deg); } }
+    .scene__ring--b { width: 250px; height: 250px; border-color: rgba(168, 85, 247, .32); }
 
     .stack {
       position: relative; width: 280px; height: 340px;
+      transform: translate3d(0, 0, 0) rotateX(8deg) rotateY(-16deg);
       transform-style: preserve-3d;
-      animation: float 6.5s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translate3d(0, 0, 0) rotateX(8deg) rotateY(-16deg); }
-      50%      { transform: translate3d(0, -22px, 0) rotateX(3deg) rotateY(-6deg); }
     }
 
     .sheet {
@@ -337,27 +314,20 @@
       color: #a5f3fc; font-size: 58px; font-weight: 900; letter-spacing: -.1em; padding-right: 8px;
       text-shadow: 0 0 24px rgba(34, 211, 238, .8);
       transform: rotate(-4deg);
-      animation: label-sway 9s var(--ease) infinite;
-    }
-    @keyframes label-sway {
-      0%, 100% { transform: rotate(-4deg); }
-      50%      { transform: rotate(3deg); }
     }
 
     .scene__chip {
       position: absolute; display: inline-flex; align-items: center; gap: 8px;
       padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 13px;
-      background: rgba(8, 10, 22, .78); backdrop-filter: blur(8px);
+      background: rgba(8, 10, 22, .92);
       font-size: 11px; font-weight: 700; color: var(--muted);
       box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
-      animation: bob 5s ease-in-out infinite;
     }
     .scene__chip b { color: var(--text); }
     .scene__chip i { width: 8px; height: 8px; border-radius: 3px; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
     .scene__chip--a { top: 8%; left: 0; }
-    .scene__chip--b { bottom: 10%; right: 0; animation-delay: -2.5s; }
+    .scene__chip--b { bottom: 10%; right: 0; }
     .scene__chip--b i { background: var(--pink); box-shadow: 0 0 12px var(--pink); }
-    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
 
     /* =====================================================================
        ПОЛОСА ПРЕИМУЩЕСТВ
@@ -375,21 +345,6 @@
     }
     .quick-point strong { display: block; font-size: 13.5px; font-weight: 750; }
     .quick-point span:last-child { display: block; margin-top: 3px; color: var(--muted-2); font-size: 11.5px; }
-
-    /* =====================================================================
-       ПОЯВЛЕНИЕ ПРИ ПРОКРУТКЕ
-       ===================================================================== */
-    /* По умолчанию контент виден даже без JS; эффекты включаются только после
-       успешной инициализации IntersectionObserver в effects.js. */
-    [data-reveal] { opacity: 1; transform: none; }
-    html.effects-ready [data-reveal] {
-      opacity: 0; transform: translateY(24px);
-      transition: opacity .55s var(--ease), transform .55s var(--ease);
-    }
-    html.effects-ready [data-reveal].is-visible { opacity: 1; transform: none; }
-    html.effects-ready [data-reveal="left"]  { transform: translateX(-24px); }
-    html.effects-ready [data-reveal="right"] { transform: translateX(24px); }
-    html.effects-ready [data-reveal="zoom"]  { transform: scale(.96); }
 
     /* =====================================================================
        СЕКЦИИ
@@ -433,10 +388,8 @@
       padding: 24px; overflow: hidden;
       border: 1px solid var(--line); border-radius: var(--radius);
       background: linear-gradient(160deg, rgba(255, 255, 255, .05), transparent 55%), var(--panel);
-      backdrop-filter: blur(6px);
-      transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateZ(0);
-      transform-style: preserve-3d;
-      transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease);
+      perspective: 900px; transform-style: preserve-3d;
+      transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
     }
     .film-card::before {
       content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
@@ -537,13 +490,11 @@
     .tpl-card {
       position: relative; display: flex; flex-direction: column; overflow: hidden;
       border: 1px solid var(--line); border-radius: var(--radius);
-      background: var(--panel); backdrop-filter: blur(6px);
-      transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-      transform-style: preserve-3d;
-      transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease);
+      background: var(--panel);
+      transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
     }
     .tpl-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow), var(--glow-soft); }
-    .tpl-card__photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: #0b0e1c; transform: translateZ(1px); }
+    .tpl-card__photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: #0b0e1c; }
     /* Фото ещё не загрузилось в репозиторий — вместо дырки неоновая плашка */
     .tpl-card--no-photo::before {
       content: ""; display: block; aspect-ratio: 4 / 3;
@@ -571,7 +522,7 @@
     .order-shell {
       display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr);
       overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius);
-      background: var(--panel); backdrop-filter: blur(8px); box-shadow: var(--shadow);
+      background: var(--panel); box-shadow: var(--shadow);
     }
 
     .calc-panel { padding: clamp(22px, 3.4vw, 36px); }
@@ -843,15 +794,13 @@
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
       }
-      [data-reveal] { opacity: 1; transform: none; }
-      #cursor-glow { display: none; }
     }
   </style>
 </head>
 <body>
   <a class="skip-link" href="#main">Перейти к содержимому</a>
 
-  <!-- Фон: аврора, сетка-пол и подсветка за курсором -->
+  <!-- Статичный фон: неоновые ореолы, сетка и scanlines -->
   <div class="backdrop" aria-hidden="true">
     <span class="aurora aurora--one"></span>
     <span class="aurora aurora--two"></span>
@@ -859,8 +808,6 @@
     <span class="grid-floor"></span>
     <span class="scanlines"></span>
   </div>
-  <div id="cursor-glow" aria-hidden="true"></div>
-
   <header class="site-header" id="top">
     <div class="container header-inner">
       <a class="brand" href="#top" aria-label="На главную">
@@ -888,7 +835,7 @@
     <!-- ============================ ГЕРОЙ ============================ -->
     <section class="hero" aria-labelledby="hero-title">
       <div class="container hero-grid">
-        <div data-reveal>
+        <div>
           <p class="kicker">Плёнка · расчёт · заявка в Telegram</p>
           <h1 id="hero-title">Наклейки из <span class="neon-text">виниловой плёнки</span> <span class="glow">за минуту</span></h1>
           <p class="hero-copy">Три фактуры, честный расчёт по площади и заказ, который уходит напрямую менеджеру в Telegram. Никаких регистраций — посчитали, оставили имя и телефон, и ждёте ответа.</p>
@@ -900,13 +847,13 @@
             <a class="button button--ghost" href="https://t.me/+aZLbDN640q5hNGYy" target="_blank" rel="noopener">Примеры работ в канале</a>
           </div>
           <ul class="hero-stats" aria-label="Коротко о сервисе">
-            <li><strong data-count="3">3</strong><span>вида плёнки</span></li>
-            <li><strong data-count="500">500</strong><span>₽ минимальный заказ</span></li>
+            <li><strong>3</strong><span>вида плёнки</span></li>
+            <li><strong>500</strong><span>₽ минимальный заказ</span></li>
             <li><strong>мгновенно</strong><span>расчёт по площади</span></li>
           </ul>
         </div>
 
-        <div class="scene" data-reveal="zoom" role="img" aria-label="Листы виниловой плёнки с неоновой подсветкой">
+        <div class="scene" role="img" aria-label="Листы виниловой плёнки с неоновой подсветкой">
           <span class="scene__ring scene__ring--a" aria-hidden="true"></span>
           <span class="scene__ring scene__ring--b" aria-hidden="true"></span>
           <div class="stack" aria-hidden="true">
@@ -936,14 +883,14 @@
     <!-- ============================ ПЛЁНКИ ============================ -->
     <section class="section" id="materials" aria-labelledby="materials-title">
       <div class="container">
-        <div class="section-head" data-reveal>
+        <div class="section-head">
           <p class="kicker kicker--muted">01 / Плёнка</p>
           <h2 id="materials-title">Выберите фактуру под задачу</h2>
           <p>Стоимость зависит от материала: матовый — <strong>3 ₽ за см²</strong>, глянцевый — <strong>4 ₽ за см²</strong>, металлик — <strong>6 ₽ за см²</strong>. Минимальный заказ — 500 ₽.</p>
         </div>
 
         <div class="materials-grid">
-          <article class="film-card" data-tilt data-reveal style="--film-glow: rgba(34, 211, 238, .28); --film-glow-soft: rgba(34, 211, 238, .16);">
+          <article class="film-card" style="--film-glow: rgba(34, 211, 238, .28); --film-glow-soft: rgba(34, 211, 238, .16);">
             <div class="film-card__top">
               <span class="film-index">01 / MATTE</span>
               <span class="swatch swatch--matte" aria-hidden="true"></span>
@@ -957,7 +904,7 @@
             </div>
           </article>
 
-          <article class="film-card" data-tilt data-reveal style="--film-glow: rgba(240, 20, 120, .28); --film-glow-soft: rgba(240, 20, 120, .16);">
+          <article class="film-card" style="--film-glow: rgba(240, 20, 120, .28); --film-glow-soft: rgba(240, 20, 120, .16);">
             <div class="film-card__top">
               <span class="film-index">02 / GLOSS</span>
               <span class="swatch swatch--gloss" aria-hidden="true"></span>
@@ -971,7 +918,7 @@
             </div>
           </article>
 
-          <article class="film-card" data-tilt data-reveal style="--film-glow: rgba(163, 230, 53, .24); --film-glow-soft: rgba(163, 230, 53, .14);">
+          <article class="film-card" style="--film-glow: rgba(163, 230, 53, .24); --film-glow-soft: rgba(163, 230, 53, .14);">
             <div class="film-card__top">
               <span class="film-index">03 / METALLIC</span>
               <span class="swatch swatch--metallic" aria-hidden="true"></span>
@@ -991,18 +938,18 @@
     <!-- ============================ О МАТЕРИАЛЕ ============================ -->
     <section class="section section--muted" id="about" aria-labelledby="about-title">
       <div class="container about-grid">
-        <div class="about-intro" data-reveal="left">
+        <div class="about-intro">
           <p class="kicker kicker--muted">02 / О материале</p>
           <h2 id="about-title">Что важно знать до заказа</h2>
           <p>Плёнка — гибкий материал с клеевым слоем и защитной подложкой. Тип выбирают по поверхности, внешнему виду и условиям эксплуатации.</p>
           <div class="note-box"><b aria-hidden="true">i</b><span>Срок службы и стойкость зависят от серии, цвета, поверхности и условий использования. Точные характеристики всегда сверяйтесь с паспортом выбранной плёнки.</span></div>
         </div>
         <ul class="about-list">
-          <li data-reveal><span class="about-number">01</span><div><h3>Где применяют</h3><p>Надписи, маркировка и указатели на ровных поверхностях: стекло, пластик, металл, мебель.</p></div></li>
-          <li data-reveal><span class="about-number">02</span><div><h3>Как выбрать фактуру</h3><p>Матовая — сдержанно и практично. Глянцевая — блеск и насыщенный цвет. Металлик — акцент и эффект переливания.</p></div></li>
-          <li data-reveal><span class="about-number">03</span><div><h3>Подготовка поверхности</h3><p>Перед нанесением поверхность очищают и сушат. На сложных или окрашенных местах сначала проверьте совместимость на небольшом участке.</p></div></li>
-          <li data-reveal><span class="about-number">04</span><div><h3>Как считается цена</h3><p>Ширина × высота × ставка плёнки × количество. Если сумма выходит меньше 500 ₽, считаем от 500 ₽.</p></div></li>
-          <li data-reveal><span class="about-number">05</span><div><h3>Как проходит заказ</h3><p>Заявка уходит менеджеру в Telegram. Он подтверждает наличие материала, сроки и итоговую сумму, а при необходимости предлагает макет.</p></div></li>
+          <li><span class="about-number">01</span><div><h3>Где применяют</h3><p>Надписи, маркировка и указатели на ровных поверхностях: стекло, пластик, металл, мебель.</p></div></li>
+          <li><span class="about-number">02</span><div><h3>Как выбрать фактуру</h3><p>Матовая — сдержанно и практично. Глянцевая — блеск и насыщенный цвет. Металлик — акцент и эффект переливания.</p></div></li>
+          <li><span class="about-number">03</span><div><h3>Подготовка поверхности</h3><p>Перед нанесением поверхность очищают и сушат. На сложных или окрашенных местах сначала проверьте совместимость на небольшом участке.</p></div></li>
+          <li><span class="about-number">04</span><div><h3>Как считается цена</h3><p>Ширина × высота × ставка плёнки × количество. Если сумма выходит меньше 500 ₽, считаем от 500 ₽.</p></div></li>
+          <li><span class="about-number">05</span><div><h3>Как проходит заказ</h3><p>Заявка уходит менеджеру в Telegram. Он подтверждает наличие материала, сроки и итоговую сумму, а при необходимости предлагает макет.</p></div></li>
         </ul>
       </div>
     </section>
@@ -1010,25 +957,25 @@
     <!-- ============================ ПРИМЕРЫ ============================ -->
     <section class="section" id="templates" aria-labelledby="templates-title" hidden>
       <div class="container">
-        <div class="section-head" data-reveal>
+        <div class="section-head">
           <p class="kicker kicker--muted">03 / Примеры</p>
           <h2 id="templates-title">Готовые шаблоны</h2>
           <p>Нажмите на карточку — материал, размер и тираж подставятся в расчёт, останется только оставить имя и контакт.</p>
         </div>
-        <div class="tpl-grid" id="templates-grid" data-reveal></div>
+        <div class="tpl-grid" id="templates-grid"></div>
       </div>
     </section>
 
     <!-- ==================== РАСЧЁТ И ЗАЯВКА ==================== -->
     <section class="section section--muted" id="calculator" aria-labelledby="calculator-title">
       <div class="container">
-        <div class="section-head" data-reveal>
+        <div class="section-head">
           <p class="kicker kicker--muted">04 / Расчёт и заявка</p>
           <h2 id="calculator-title">Посчитайте и оставьте заявку</h2>
           <p>Укажите плёнку, размеры в сантиметрах и количество. Итог пересчитается сразу, а форма отправит заказ менеджеру в Telegram.</p>
         </div>
 
-        <div class="order-shell" data-reveal="zoom">
+        <div class="order-shell">
           <!-- --- Калькулятор --- -->
           <div class="calc-panel">
             <h3>Параметры расчёта</h3>
@@ -1157,14 +1104,11 @@
     <p style="margin:0;padding:16px;text-align:center;color:#a7b0d0">Для расчёта и отправки заявки включите JavaScript. Написать нам можно в Telegram: t.me/nakleyki23bot</p>
   </noscript>
 
-  <script src="pricing.js?v=3"></script>
-  <script src="site.config.js?v=3"></script>
-  <script src="tgdirect.js?v=3"></script>
-  <script src="orderlink.js?v=3"></script>
-  <script src="templates.js?v=3"></script>
-  <script src="templates/catalog.js?v=3"></script>
-  <script src="gallery.js?v=3"></script>
-  <script src="site.js?v=3"></script>
-  <script src="effects.js?v=3"></script>
+  <!-- Минимальный стартовый набор; тяжёлые модули заявки и галереи подключаются по запросу. -->
+  <script defer src="pricing.js?v=3"></script>
+  <script defer src="site.config.js?v=3"></script>
+  <script defer src="templates/catalog.js?v=4"></script>
+  <script defer src="gallery-loader.js?v=4"></script>
+  <script defer src="site.js?v=4"></script>
 </body>
 </html>

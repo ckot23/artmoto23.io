@@ -51,8 +51,11 @@
      ФОРМАТ ЧИСЕЛ
      ----------------------------------------------------------------------- */
 
+  var numberFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
+  var integerFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+
   function formatNumber(value) {
-    return Number(value).toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    return numberFormatter.format(Number(value));
   }
 
   function formatMoney(value) {
@@ -172,7 +175,7 @@
     showError("");
     last = result;
     elements.total.textContent = formatMoney(result.total);
-    elements.subtitle.textContent = result.quantity.toLocaleString("ru-RU") + " шт. · " + (selectedFilm ? selectedFilm.name.toLowerCase() : "плёнка");
+    elements.subtitle.textContent = integerFormatter.format(result.quantity) + " шт. · " + (selectedFilm ? selectedFilm.name.toLowerCase() : "плёнка");
     elements.area.textContent = formatNumber(result.area) + " см²";
     elements.rate.textContent = formatMoney(result.rate);
     elements.unit.textContent = formatMoney(result.unit);
@@ -264,6 +267,48 @@
     elements.summary.textContent = parts.join(" · ") + " — " + formatMoney(result.total);
   }
 
+  var scriptPromises = Object.create(null);
+
+  function hasDirect() {
+    var direct = window.TgDirect || (typeof globalThis !== "undefined" ? globalThis.TgDirect : null);
+    return !!(direct && typeof direct.send === "function");
+  }
+
+  function hasOrderLink() {
+    var orderLink = window.OrderLink || (typeof globalThis !== "undefined" ? globalThis.OrderLink : null);
+    return !!(orderLink && typeof orderLink.botLink === "function");
+  }
+
+  function loadScriptOnce(src, ready) {
+    if (ready()) return Promise.resolve();
+    if (scriptPromises[src]) return scriptPromises[src];
+
+    scriptPromises[src] = new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = function () {
+        if (ready()) resolve();
+        else reject(new Error("Скрипт загрузился, но модуль не запустился."));
+      };
+      script.onerror = function () { reject(new Error("Не удалось загрузить модуль.")); };
+      (document.head || document.body).appendChild(script);
+    }).catch(function (error) {
+      delete scriptPromises[src];
+      throw error;
+    });
+
+    return scriptPromises[src];
+  }
+
+  function loadDirect() {
+    return loadScriptOnce("tgdirect.js?v=4", hasDirect);
+  }
+
+  function loadOrderLink() {
+    return loadScriptOnce("orderlink.js?v=4", hasOrderLink);
+  }
+
   function fieldError(message) {
     if (!elements.status) return;
     elements.status.hidden = false;
@@ -310,21 +355,29 @@
      даём клиенту запасной путь: открыть бота с уже собранным заказом. */
   function showFallback(order, hint) {
     if (!elements.status) return;
-    var link = (typeof OrderLink !== "undefined" && config.botUsername)
-      ? OrderLink.botLink(config.botUsername, order) : "";
     elements.status.hidden = false;
     elements.status.className = "order-status order-status--warn";
     elements.status.textContent = hint || "Не удалось отправить заявку напрямую.";
-    if (!link) return;
+    if (!config.botUsername) return;
 
-    var button = document.createElement("a");
-    button.className = "order-status__link";
-    button.href = link;
-    button.target = "_blank";
-    button.rel = "noopener";
-    button.textContent = "Открыть бота и отправить заказ вручную ↗";
-    elements.status.appendChild(document.createElement("br"));
-    elements.status.appendChild(button);
+    /* Редкий запасной путь: код ссылки загружаем только при ошибке отправки. */
+    loadOrderLink().then(function () {
+      var orderLink = window.OrderLink || (typeof globalThis !== "undefined" ? globalThis.OrderLink : null);
+      if (!orderLink || typeof orderLink.botLink !== "function") return;
+      var link = orderLink.botLink(config.botUsername, order);
+      if (!link) return;
+
+      var button = document.createElement("a");
+      button.className = "order-status__link";
+      button.href = link;
+      button.target = "_blank";
+      button.rel = "noopener";
+      button.textContent = "Открыть бота и отправить заказ вручную ↗";
+      elements.status.appendChild(document.createElement("br"));
+      elements.status.appendChild(button);
+    }).catch(function () {
+      /* Подсказка об ошибке уже видна; прямой адрес бота есть в шапке. */
+    });
   }
 
   function showSuccess(reply) {
@@ -359,16 +412,14 @@
       if (!checked.ok) { fieldError(checked.error); return; }
     }
 
-    var direct = window.TgDirect || (typeof globalThis !== "undefined" ? globalThis.TgDirect : null);
-    if (!direct || typeof direct.send !== "function") {
-      showFallback(order, "Отправка заявок временно недоступна.");
-      return;
-    }
-
     clearStatus();
     setBusy(true);
 
-    direct.send(order).then(function (reply) {
+    loadDirect().then(function () {
+      var direct = window.TgDirect || (typeof globalThis !== "undefined" ? globalThis.TgDirect : null);
+      if (!direct || typeof direct.send !== "function") throw new Error("Модуль отправки не запустился.");
+      return direct.send(order);
+    }).then(function (reply) {
       setBusy(false);
       if (reply && reply.ok) {
         showSuccess(reply);
@@ -379,7 +430,8 @@
       else showFallback(order, ((reply && reply.error) || "Заявка не отправлена.") + hint);
     }, function (error) {
       setBusy(false);
-      showFallback(order, "Нет связи с Telegram." + (error && error.message ? " " + error.message : ""));
+      var prefix = hasDirect() ? "Нет связи с Telegram." : "Не удалось загрузить отправку заявки.";
+      showFallback(order, prefix + (error && error.message ? " " + error.message : ""));
     });
   }
 
@@ -414,6 +466,8 @@
   fillOptions();
   updateRates();
   render();
+  var year = document.getElementById("year");
+  if (year) year.textContent = String(new Date().getFullYear());
 
   if (elements.form) elements.form.addEventListener("submit", function (event) {
     event.preventDefault();
