@@ -208,6 +208,8 @@ function validate(raw) {
   var contact = String(raw.contact || "").trim().slice(0, 64);
   var delivery = String(raw.delivery || "").trim().slice(0, 160);
   var comment = String(raw.comment || "").trim().slice(0, 600);
+  /* Эскиз — просто подпись выбранного примера, на цену не влияет. */
+  var sketch = String(raw.sketch || "").trim().slice(0, 80);
 
   if (name.length < 2) return { ok: false, error: "Укажите имя (минимум 2 символа)" };
   if (!CONTACT_RE.test(contact)) return { ok: false, error: "Укажите контакт: @username, телефон или e-mail" };
@@ -223,6 +225,7 @@ function validate(raw) {
       w: w, h: h, qty: qty,
       name: name, contact: contact, contactKind: contactKind(contact),
       delivery: delivery, comment: comment,
+      sketch: sketch,
       clientTotal: isFinite(Number(raw.client_total)) ? Math.round(Number(raw.client_total)) : null
     }
   };
@@ -253,6 +256,7 @@ function orderMessage(order, price, meta) {
   lines.push("🧩 <b>Конфигурация</b>");
   lines.push("• Материал: " + escapeHtml(order.filmName) + " (" + order.filmRate + " ₽/см²)");
   lines.push("• Дизайн: " + escapeHtml(order.designName));
+  if (order.sketch) lines.push("• Эскиз: " + escapeHtml(order.sketch));
   lines.push("• Цвет: " + escapeHtml(order.colorName));
   lines.push("• Форма: " + escapeHtml(order.shapeName));
   lines.push("• Размер: " + order.w + " × " + order.h + " см (" + Math.round(price.area) + " см²)");

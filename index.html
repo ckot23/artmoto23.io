@@ -515,6 +515,21 @@
     .tpl-card__price { color: var(--lime); font-size: 15px; font-weight: 850; text-shadow: 0 0 16px rgba(163, 230, 53, .45); font-variant-numeric: tabular-nums; }
     .tpl-card__pick { padding: 6px 0 6px 8px; border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 11.5px; font-weight: 700; transition: color .2s var(--ease), transform .2s var(--ease); }
     .tpl-card__pick:hover { color: var(--cyan); transform: translateX(3px); }
+    /* Выбранный эскиз: неоновая рамка, бейдж и активная кнопка */
+    .tpl-card__sketch-hint { color: var(--muted-2); font-size: 11.5px; font-weight: 650; }
+    /* Эскизы приходят вертикальными рисунками на белой бумаге: показываем
+       их целиком, без обрезки, как есть — на светлом поле карточки. */
+    .tpl-card--sketch .tpl-card__photo { aspect-ratio: 3 / 4; object-fit: contain; background: #f6f6f4; }
+    .tpl-card--sketch.tpl-card--no-photo::before { aspect-ratio: 3 / 4; }
+    .tpl-card--picked { border-color: rgba(34, 211, 238, .55); box-shadow: var(--shadow), 0 0 0 1px rgba(34, 211, 238, .35), var(--glow-soft); }
+    .tpl-card--picked::after {
+      content: "Выбран"; position: absolute; top: 12px; left: 12px; z-index: 1;
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--cyan); color: var(--accent-ink);
+      font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      box-shadow: var(--glow-cyan);
+    }
+    .tpl-card--picked .tpl-card__pick { color: var(--cyan); }
 
     /* =====================================================================
        КАЛЬКУЛЯТОР И ЗАЯВКА
@@ -959,8 +974,8 @@
       <div class="container">
         <div class="section-head">
           <p class="kicker kicker--muted">03 / Примеры</p>
-          <h2 id="templates-title">Готовые шаблоны</h2>
-          <p>Нажмите на карточку — материал, размер и тираж подставятся в расчёт, останется только оставить имя и контакт.</p>
+          <h2 id="templates-title">Примеры эскизов</h2>
+          <p>Готовые рисунки, которые возьмём за основу вашей наклейки. Выберите эскиз карточкой ниже или в форме заявки — плёнку, размер и тираж вы задаёте сами, цена считается только по ним.</p>
         </div>
         <div class="tpl-grid" id="templates-grid"></div>
       </div>
@@ -1046,6 +1061,7 @@
 
             <form id="order-form" novalidate>
               <p class="order-template" id="order-template" hidden></p>
+              <p class="order-template" id="order-sketch-note" hidden></p>
 
               <div class="form-grid">
                 <div class="field">
@@ -1059,6 +1075,12 @@
                 <div class="field">
                   <label class="field-label" for="order-shape">Форма</label>
                   <select id="order-shape" name="shape"></select>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="order-sketch">Эскиз</label>
+                  <select id="order-sketch" name="sketch">
+                    <option value="">Свой эскиз</option>
+                  </select>
                 </div>
                 <div class="field">
                   <label class="field-label" for="order-delivery">Получение</label>
@@ -1108,7 +1130,8 @@
   <script defer src="pricing.js?v=3"></script>
   <script defer src="site.config.js?v=3"></script>
   <script defer src="templates/catalog.js?v=4"></script>
-  <script defer src="gallery-loader.js?v=4"></script>
-  <script defer src="site.js?v=4"></script>
+  <script defer src="sketches/catalog.js?v=3"></script>
+  <script defer src="gallery-loader.js?v=5"></script>
+  <script defer src="site.js?v=5"></script>
 </body>
 </html>
