@@ -12,19 +12,49 @@
 
 var SITE_SKETCHES = [
   {
-    id: "wolf-geometriya",
-    title: "Волк — геометрия",
-    img: "sketches/img/wolf.jpg"
+    id: "volk-siluet",
+    title: "Волк — силуэт",
+    img: "sketches/img/volk-siluet.jpg"
   },
   {
-    id: "cherep-s-krylyami",
-    title: "Череп с крыльями",
-    img: "sketches/img/skull.jpg"
+    id: "lisa",
+    title: "Лиса",
+    img: "sketches/img/lisa.jpg"
   },
   {
-    id: "region-23",
-    title: "Region 23",
-    img: "sketches/img/region.jpg"
+    id: "kogti",
+    title: "Когти",
+    img: "sketches/img/kogti.jpg"
+  },
+  {
+    id: "maska-s-podtekami",
+    title: "Маска с подтёками",
+    img: "sketches/img/maska-s-podtekami.jpg"
+  },
+  {
+    id: "nozh-s-maskoy",
+    title: "Нож с маской",
+    img: "sketches/img/nozh-s-maskoy.jpg"
+  },
+  {
+    id: "demonica",
+    title: "Демоница",
+    img: "sketches/img/demonica.jpg"
+  },
+  {
+    id: "korona-i-krest",
+    title: "Корона и крест",
+    img: "sketches/img/korona-i-krest.jpg"
+  },
+  {
+    id: "grut",
+    title: "Грут",
+    img: "sketches/img/grut.jpg"
+  },
+  {
+    id: "logotip-s-podtekami",
+    title: "Логотип с подтёками",
+    img: "sketches/img/logotip-s-podtekami.jpg"
   }
 ];
 
