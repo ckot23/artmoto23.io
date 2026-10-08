@@ -34,6 +34,8 @@
     design: document.getElementById("order-design"),
     color: document.getElementById("order-color"),
     shape: document.getElementById("order-shape"),
+    sketch: document.getElementById("order-sketch"),
+    sketchNote: document.getElementById("order-sketch-note"),
     send: document.getElementById("order-send"),
     status: document.getElementById("order-status"),
     summary: document.getElementById("order-summary"),
@@ -228,7 +230,8 @@
   }
 
   /* Варианты дизайна, цвета и формы берём из прайса, чтобы страница и
-     заявка модератору не могли разойтись. */
+     заявка модератору не могли разойтись. Эскизы — из sketches/catalog.js:
+     они на цену не влияют, в расчёт не подставляются. */
   function fillOptions() {
     if (pricing && Array.isArray(pricing.DESIGNS)) {
       fillSelect(elements.design, pricing.DESIGNS.map(function (item) { return option(item.id, item.name); }));
@@ -241,6 +244,24 @@
         return option(id, pricing.SHAPES[id]);
       }));
     }
+    fillSketches();
+  }
+
+  /* Список «Эскиз» в форме: «Свой эскиз» плюс названия из каталога примеров.
+     Выбранный эскиз уходит модератору строкой в заявке. */
+  function sketchList() {
+    var items = globalThis.SITE_SKETCHES;
+    return Array.isArray(items) ? items : [];
+  }
+
+  function fillSketches() {
+    if (!elements.sketch) return;
+    var items = sketchList().map(function (item) {
+      return option(String(item && item.title || "").trim(), String(item && item.title || "").trim());
+    }).filter(function (item) { return item.value; });
+    /* Селект уже заполнен витриной эскизов — не дублируем. */
+    if (elements.sketch.options.length > 1) return;
+    fillSelect(elements.sketch, [option("", "Свой эскиз")].concat(items));
   }
 
   function value(select, fallback) {
@@ -263,8 +284,19 @@
       result.quantity + " шт"
     ];
     if (design) parts.push(design.name.toLowerCase());
+    /* Эскиз на цену не влияет — в сводке просто напоминание о выборе. */
+    var sketchTitle = text(elements.sketch);
+    if (sketchTitle) parts.push("эскиз «" + sketchTitle + "»");
     if (result.setup > 0) parts.push("макет " + formatMoney(result.setup));
     elements.summary.textContent = parts.join(" · ") + " — " + formatMoney(result.total);
+  }
+
+  /* Подсказка над формой: какой эскиз сейчас выбран. */
+  function updateSketchNote() {
+    if (!elements.sketchNote) return;
+    var sketchTitle = text(elements.sketch);
+    elements.sketchNote.textContent = sketchTitle ? "Эскиз: " + sketchTitle : "";
+    elements.sketchNote.hidden = !sketchTitle;
   }
 
   var scriptPromises = Object.create(null);
@@ -339,6 +371,7 @@
       design: value(elements.design, "own"),
       color: value(elements.color, "black"),
       shape: value(elements.shape, "rectangle"),
+      sketch: text(elements.sketch),
       w: Number(last.width),
       h: Number(last.height),
       qty: Number(last.quantity),
@@ -391,6 +424,10 @@
       elements.template.textContent = "";
       elements.template.hidden = true;
     }
+    /* reset() не вызывает change: снимаем выбор эскиза сами. */
+    updateSketchNote();
+    var gallery = globalThis.SiteSketches;
+    if (gallery && typeof gallery.clear === "function") gallery.clear();
     updateSummary(last);
   }
 
@@ -446,6 +483,14 @@
   /* Дизайн и цвет меняют цену, поэтому пересчитываем полностью. */
   if (elements.design) bindInput(elements.design);
   if (elements.color) bindInput(elements.color);
+  /* Эскиз цену не меняет — обновляем только подсказку и сводку заказа. */
+  if (elements.sketch) {
+    var sketchPicked = function () {
+      updateSketchNote();
+      updateSummary(last);
+    };
+    elements.sketch.addEventListener("change", sketchPicked);
+  }
 
   document.addEventListener("click", function (event) {
     var target = event.target;

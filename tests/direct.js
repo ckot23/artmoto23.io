@@ -411,6 +411,41 @@ chain = chain.then(function () {
       "не подключаются нужные файлы при заполненном каталоге");
   });
 
+  check("эскиз из формы доезжает до заявки модератору", function () {
+    var order = Object.assign({}, ORDER, { sketch: "Волк — геометрия" });
+    var checked = P.validate(order);
+    assert.ok(checked.ok, checked.error);
+    assert.strictEqual(checked.value.sketch, "Волк — геометрия");
+    var text = Direct.buildMessage(checked.value, P.calculate(checked.value), { orderId: "x", time: "t" });
+    assert.ok(text.indexOf("• Эскиз: Волк — геометрия") !== -1, "эскиза нет в сообщении модератору");
+  });
+
+  check("без эскиза заявка выглядит как раньше", function () {
+    var checked = P.validate(ORDER);
+    assert.strictEqual(checked.value.sketch, "");
+    var text = Direct.buildMessage(checked.value, P.calculate(checked.value), { orderId: "x", time: "t" });
+    assert.ok(text.indexOf("Эскиз") === -1, "лишняя строка в сообщении модератору");
+  });
+
+  check("примеры эскизов подключены и видны в форме заказа", function () {
+    assert.ok(html.indexOf('src="sketches/catalog.js') !== -1, "каталог эскизов не подключён");
+    assert.ok(html.indexOf('id="order-sketch"') !== -1, "в форме нет селекта «Эскиз»");
+    assert.ok(/id="templates"[^>]*hidden/.test(html), "витрина примеров не спрятана в разметке");
+    var catalog = fs.readFileSync(path.join(ROOT, "sketches/catalog.js"), "utf8");
+    assert.ok(/SITE_SKETCHES\s*=\s*\[/, "каталог эскизов пуст");
+    var found = catalog.match(/img:\s*"([^"]+)"/g) || [];
+    assert.ok(found.length >= 2, "в каталоге меньше двух эскизов");
+    found.forEach(function (entry) {
+      var file = String(ROOT + "/" + entry.replace(/img:\s*"/, "").replace(/"$/, ""));
+      assert.ok(fs.existsSync(file), "нет картинки эскиза: " + file);
+    });
+    var loader = fs.readFileSync(path.join(ROOT, "gallery-loader.js"), "utf8");
+    assert.ok(loader.indexOf("sketch-gallery.js") !== -1, "загрузчик не подключает витрину эскизов");
+    var site = fs.readFileSync(path.join(ROOT, "site.js"), "utf8");
+    assert.ok(site.indexOf("SITE_SKETCHES") !== -1, "форма не наполняет селект эскизами");
+    assert.ok(site.indexOf("sketch:") !== -1, "эскиз не уходит в заявку");
+  });
+
   check("на странице есть ссылка на Telegram-канал", function () {
     var channel = "https://t.me/+aZLbDN640q5hNGYy";
     assert.ok(html.indexOf(channel) !== -1, "нет ссылки на канал");
