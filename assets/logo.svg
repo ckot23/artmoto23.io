@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Контур">
+  <title>Контур</title>
+  <defs>
+    <!-- Неоновый градиент бренда: cyan → violet → pink (те же цвета, что на сайте) -->
+    <linearGradient id="k-g" gradientUnits="userSpaceOnUse" x1="8" y1="6" x2="58" y2="60">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset=".52" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#f0f"/>
+    </linearGradient>
+    <linearGradient id="k-tile" gradientUnits="userSpaceOnUse" x1="10" y1="4" x2="56" y2="62">
+      <stop offset="0" stop-color="#0c1124"/>
+      <stop offset="1" stop-color="#07080f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Плитка-стикер -->
+  <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#k-tile)" stroke="url(#k-g)" stroke-width="2.4"/>
+
+  <!-- Линия реза (контурировка) — как на плоттерной резке винила -->
+  <rect x="7.25" y="7.25" width="49.5" height="49.5" rx="10.5"
+        fill="none" stroke="url(#k-g)" stroke-width="1.6"
+        stroke-dasharray="4.5 3.6" stroke-linecap="round" opacity=".55"/>
+
+  <!-- Буква К -->
+  <g fill="none" stroke="url(#k-g)" stroke-width="7.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21.2 14.4V49.6"/>
+    <path d="M43.6 14.4 21.2 32"/>
+    <path d="M21.2 32 43.6 49.6"/>
+  </g>
+</svg>
