@@ -436,7 +436,7 @@ chain = chain.then(function () {
     var found = catalog.match(/img:\s*"([^"]+)"/g) || [];
     assert.ok(found.length >= 2, "в каталоге меньше двух эскизов");
     found.forEach(function (entry) {
-      var file = String(ROOT + "/" + entry.replace(/img:\s*"/, "").replace(/"$/, ""));
+      var file = String(ROOT + "/" + entry.replace(/img:\s*"/, "").replace(/"$/, "").replace(/\?v=\d+$/, ""));
       assert.ok(fs.existsSync(file), "нет картинки эскиза: " + file);
     });
     var loader = fs.readFileSync(path.join(ROOT, "gallery-loader.js"), "utf8");

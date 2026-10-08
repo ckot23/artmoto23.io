@@ -14,47 +14,47 @@ var SITE_SKETCHES = [
   {
     id: "volk-siluet",
     title: "Волк — силуэт",
-    img: "sketches/img/volk-siluet.jpg"
+    img: "sketches/img/volk-siluet.jpg?v=2"
   },
   {
     id: "lisa",
     title: "Лиса",
-    img: "sketches/img/lisa.jpg"
+    img: "sketches/img/lisa.jpg?v=2"
   },
   {
     id: "kogti",
     title: "Когти",
-    img: "sketches/img/kogti.jpg"
+    img: "sketches/img/kogti.jpg?v=2"
   },
   {
     id: "maska-s-podtekami",
     title: "Маска с подтёками",
-    img: "sketches/img/maska-s-podtekami.jpg"
+    img: "sketches/img/maska-s-podtekami.jpg?v=2"
   },
   {
     id: "nozh-s-maskoy",
     title: "Нож с маской",
-    img: "sketches/img/nozh-s-maskoy.jpg"
+    img: "sketches/img/nozh-s-maskoy.jpg?v=2"
   },
   {
     id: "demonica",
     title: "Демоница",
-    img: "sketches/img/demonica.jpg"
+    img: "sketches/img/demonica.jpg?v=2"
   },
   {
     id: "korona-i-krest",
     title: "Корона и крест",
-    img: "sketches/img/korona-i-krest.jpg"
+    img: "sketches/img/korona-i-krest.jpg?v=2"
   },
   {
     id: "grut",
     title: "Грут",
-    img: "sketches/img/grut.jpg"
+    img: "sketches/img/grut.jpg?v=2"
   },
   {
     id: "logotip-s-podtekami",
     title: "Логотип с подтёками",
-    img: "sketches/img/logotip-s-podtekami.jpg"
+    img: "sketches/img/logotip-s-podtekami.jpg?v=2"
   }
 ];
 
