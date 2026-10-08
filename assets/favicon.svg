@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Контур">
+  <title>Контур</title>
+  <defs>
+    <!-- Упрощённый знак для фавикона: без пунктира, буква толще -->
+    <linearGradient id="f-g" gradientUnits="userSpaceOnUse" x1="8" y1="6" x2="58" y2="60">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset=".52" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#f0f"/>
+    </linearGradient>
+    <linearGradient id="f-tile" gradientUnits="userSpaceOnUse" x1="10" y1="4" x2="56" y2="62">
+      <stop offset="0" stop-color="#0c1124"/>
+      <stop offset="1" stop-color="#07080f"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#f-tile)" stroke="url(#f-g)" stroke-width="3"/>
+  <g fill="none" stroke="url(#f-g)" stroke-width="8.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 14V50"/>
+    <path d="M43.8 14 21 32"/>
+    <path d="M21 32 43.8 50"/>
+  </g>
+</svg>

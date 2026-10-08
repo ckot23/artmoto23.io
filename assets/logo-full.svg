@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 504 104" role="img" aria-label="Контур — виниловая плёнка · наклейки на заказ">
+  <title>Контур — виниловая плёнка · наклейки на заказ</title>
+  <defs>
+    <linearGradient id="L-g" gradientUnits="userSpaceOnUse" x1="14" y1="12" x2="92" y2="100">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset=".52" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#f0f"/>
+    </linearGradient>
+    <linearGradient id="L-tile" gradientUnits="userSpaceOnUse" x1="18" y1="10" x2="90" y2="102">
+      <stop offset="0" stop-color="#0c1124"/>
+      <stop offset="1" stop-color="#07080f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Фоновая карточка -->
+  <rect width="504" height="104" rx="20" fill="#07080f"/>
+
+  <!-- Знак -->
+  <g transform="translate(16 16) scale(1.125)">
+    <rect x="1.5" y="1.5" width="61" height="61" rx="15" fill="url(#L-tile)" stroke="url(#L-g)" stroke-width="2.4"/>
+    <rect x="7.25" y="7.25" width="49.5" height="49.5" rx="10.5"
+          fill="none" stroke="url(#L-g)" stroke-width="1.6"
+          stroke-dasharray="4.5 3.6" stroke-linecap="round" opacity=".55"/>
+    <g fill="none" stroke="url(#L-g)" stroke-width="7.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.2 14.4V49.6"/>
+      <path d="M43.6 14.4 21.2 32"/>
+      <path d="M21.2 32 43.6 49.6"/>
+    </g>
+  </g>
+
+  <!-- Логотип-надпись -->
+  <text x="112" y="55" fill="#eef2ff"
+        font-family="Inter, 'Segoe UI', Roboto, 'DejaVu Sans', Arial, sans-serif"
+        font-size="34" font-weight="800" letter-spacing="4">КОНТУР</text>
+  <text x="113" y="78" fill="#6f7899"
+        font-family="Inter, 'Segoe UI', Roboto, 'DejaVu Sans', Arial, sans-serif"
+        font-size="11.5" font-weight="600" letter-spacing="2.2">ВИНИЛОВАЯ ПЛЁНКА · НАКЛЕЙКИ НА ЗАКАЗ</text>
+</svg>

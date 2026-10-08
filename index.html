@@ -4,9 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05060d">
-  <meta name="description" content="Наклейки из виниловой плёнки: матовая, глянцевая и металлик. Расчёт стоимости по площади, минимальный заказ 500 ₽, заявка прямо в Telegram.">
-  <title>Наклейки из виниловой плёнки — расчёт и заявка в Telegram</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322d3ee'/%3E%3Cstop offset='.5' stop-color='%23a855f7'/%3E%3Cstop offset='1' stop-color='%23f0f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%23090b16'/%3E%3Cpath d='M18 44 31 17h7l13 27h-8l-2.4-5.6H27.6L25 44z' fill='url(%23g)'/%3E%3C/svg%3E">
+  <meta name="description" content="Контур — наклейки из виниловой плёнки: матовая, глянцевая и металлик. Расчёт стоимости по площади, минимальный заказ 500 ₽, заявка прямо в Telegram.">
+  <title>Контур — наклейки из виниловой плёнки: расчёт и заявка в Telegram</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">
   <style>
     /* =====================================================================
        ТОКЕНЫ ТЕМЫ
@@ -150,10 +152,9 @@
 
     .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; flex-shrink: 0; }
     .brand__mark {
-      display: grid; width: 44px; height: 44px; place-items: center;
-      border-radius: 14px; background: linear-gradient(140deg, var(--cyan), var(--violet) 55%, var(--pink));
-      color: #05060d; font-size: 21px; font-weight: 900; letter-spacing: -.14em; padding-right: 4px;
-      box-shadow: 0 0 24px rgba(34, 211, 238, .45), inset 0 -3px 8px rgba(0, 0, 0, .3);
+      display: block; width: 44px; height: 44px;
+      border-radius: 14px;
+      filter: drop-shadow(0 0 14px rgba(34, 211, 238, .38));
     }
     .brand__name { display: block; font-size: 15px; font-weight: 850; letter-spacing: .04em; line-height: 1.2; }
     .brand__caption { display: block; margin-top: 4px; color: var(--muted-2); font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
@@ -656,8 +657,10 @@
        ===================================================================== */
     .footer { position: relative; padding: 30px 0 calc(40px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: rgba(255, 255, 255, .012); }
     .footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; }
-    .footer-brand { font-size: 13px; font-weight: 850; letter-spacing: .04em; }
-    .footer-brand span { display: block; margin-top: 4px; color: var(--muted-2); font-size: 10.5px; font-weight: 500; letter-spacing: 0; }
+    .footer-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 850; letter-spacing: .04em; }
+    .footer-brand__mark { display: block; border-radius: 8px; filter: drop-shadow(0 0 10px rgba(34, 211, 238, .3)); }
+    .footer-brand__text { display: block; }
+    .footer-brand__text span { display: block; margin-top: 4px; color: var(--muted-2); font-size: 10.5px; font-weight: 500; letter-spacing: 0; }
     .footer-links { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
     .footer-links a { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; text-decoration: none; transition: color .2s var(--ease), text-shadow .2s var(--ease); }
     .footer-links a:hover { color: var(--cyan); text-shadow: 0 0 14px rgba(34, 211, 238, .6); }
@@ -717,7 +720,7 @@
       .header-inner { min-height: 60px; gap: 8px; }
       .header-actions { gap: 6px; }
       .brand { gap: 9px; }
-      .brand__mark { width: 38px; height: 38px; border-radius: 12px; font-size: 18px; }
+      .brand__mark { width: 38px; height: 38px; border-radius: 12px; }
       .brand__name { font-size: 13px; }
       .brand__caption { font-size: 8px; }
       .pill { padding: 7px 10px; font-size: 11px; }
@@ -825,9 +828,9 @@
   </div>
   <header class="site-header" id="top">
     <div class="container header-inner">
-      <a class="brand" href="#top" aria-label="На главную">
-        <span class="brand__mark" aria-hidden="true">N</span>
-        <span><span class="brand__name">НАКЛЕЙКИ 23</span><span class="brand__caption">виниловая плёнка</span></span>
+      <a class="brand" href="#top" aria-label="Контур — на главную">
+        <img class="brand__mark" src="assets/logo.svg" width="44" height="44" alt="" aria-hidden="true">
+        <span><span class="brand__name">КОНТУР</span><span class="brand__caption">виниловая плёнка</span></span>
       </a>
       <nav class="main-nav" aria-label="Основная навигация">
         <a href="#materials">Плёнка</a>
@@ -1112,7 +1115,7 @@
 
   <footer class="footer">
     <div class="container footer-inner">
-      <span class="footer-brand">НАКЛЕЙКИ 23<span>виниловая плёнка · расчёт и заявка</span></span>
+      <span class="footer-brand"><img class="footer-brand__mark" src="assets/logo.svg" width="26" height="26" alt="" aria-hidden="true"><span class="footer-brand__text">КОНТУР<span>виниловая плёнка · расчёт и заявка</span></span></span>
       <div class="footer-links">
         <a href="https://t.me/+aZLbDN640q5hNGYy" target="_blank" rel="noopener">Telegram-канал ↗</a>
         <a href="https://t.me/nakleyki23bot" target="_blank="rel="noopener">Написать боту ↗</a>
