@@ -37,7 +37,7 @@ var CHAT_ID = "7114829971";
    лежит в google-apps-script/Code.gs. Пока строка пустая, заявки уходят только
    в Telegram. Адрес не секретный в том смысле, что токена в нём нет, но он
    виден всем, как и токен бота выше. */
-var SHEET_URL = "";
+var SHEET_URL = "https://script.google.com/macros/s/AKfycbypfdfavi0nIz1HgsfP9fXamMgYnEbCJq0pJk5fh_2eLKvp-_9vxhLA30-Vtk29Joru6A/exec";
 
 /* ------------------------------------------------------------------------ */
 
