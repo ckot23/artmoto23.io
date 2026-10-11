@@ -20,7 +20,7 @@ var BOT_TOKEN = "";
 var CHAT_ID = "";
 
 /* Адрес веб-приложения (заканчивается на /exec). */
-var SHEET_URL = "https://script.google.com/macros/s/AKfycbypfdfavi0nIz1HgsfP9fXamMgYnEbCJq0pJk5fh_2eLKvp-_9vxhLA30-Vtk29Joru6A/exec";
+var SHEET_URL = "https://script.google.com/macros/s/AKfycbwfosaECfRgwRGmVS3C1ZqElXRjNuCnHN5NP6SOVzEs3PhjpPAQfOGv80E93vh-Xdhoxw/exec";
 
 /* ------------------------------------------------------------------------ */
 

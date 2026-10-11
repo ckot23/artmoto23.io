@@ -394,7 +394,7 @@ chain = chain.then(function () {
     assert.strictEqual(html.indexOf('src="tgdirect.js'), -1, "отправка загружается до нажатия кнопки");
     assert.strictEqual(html.indexOf('src="orderlink.js'), -1, "страховочная ссылка загружается заранее");
     var site = fs.readFileSync(path.join(ROOT, "site.js"), "utf8");
-    assert.ok(site.indexOf("tgdirect.js?v=5") !== -1, "нет загрузки модуля отправки по запросу");
+    assert.ok(site.indexOf("tgdirect.js?v=6") !== -1, "нет загрузки модуля отправки по запросу");
     assert.ok(site.indexOf("orderlink.js?v=4") !== -1, "нет загрузки запасной ссылки при ошибке");
     assert.ok(site.indexOf("TgDirect") !== -1, "форма не вызывает отправку");
     assert.ok(site.indexOf("orderLink.botLink") !== -1, "нет запасного пути через бота");
