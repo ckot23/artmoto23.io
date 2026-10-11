@@ -6,11 +6,12 @@
   "main": "index.html",
   "scripts": {
     "start": "npx --yes serve -l 8080 .",
-    "test": "node tests/direct.js && node tests/panel.js && node tests/admin.js && node tests/templates.js",
+    "test": "node tests/direct.js && node tests/panel.js && node tests/admin.js && node tests/templates.js && node tests/cart.js",
     "test:direct": "node tests/direct.js",
     "test:panel": "node tests/panel.js",
     "test:admin": "node tests/admin.js",
-    "test:templates": "node tests/templates.js"
+    "test:templates": "node tests/templates.js",
+    "test:cart": "node tests/cart.js"
   },
   "engines": {
     "node": ">=18"
