@@ -186,8 +186,9 @@ check("изменение полей немедленно обновляет ц�
   var context = { window: { Pricing: P }, document: document, Pricing: P };
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, "site.js"), "utf8"), context, { filename: "site.js" });
 
-  /* 10×10 матовой × 1 шт = 300 ₽ материала, но показываем минимум 500 ₽ */
-  assert.strictEqual(elements["total-price"].textContent, "500 ₽", "начальное значение не отрисовано");
+  /* 10×10 матовой × 1 шт = 300 ₽ материала. Минимум 500 ₽ действует на всю
+     корзину, поэтому у самой наклейки показываем её цену без минимума. */
+  assert.strictEqual(elements["total-price"].textContent, "300 ₽", "начальное значение не отрисовано");
   assert.strictEqual(elements["unit-price"].textContent, "300 ₽", "цена за штуку не показана");
 
   elements.quantity.value = "2";
@@ -379,7 +380,8 @@ chain = chain.then(function () {
   check("форма заказа на месте и связана с расчётом", function () {
     ["order-form", "order-name", "order-contact", "order-delivery", "order-comment",
       "order-design", "order-color", "order-shape", "order-send", "order-status",
-      "order-summary", "film-type", "width", "height", "quantity", "total-price"]
+      "order-summary", "film-type", "width", "height", "quantity", "total-price",
+      "cart-add", "cart-list", "cart-total", "cart-total-sum", "cart-clear"]
       .forEach(function (id) {
         assert.ok(html.indexOf('id="' + id + '"') !== -1, "нет элемента " + id);
       });
@@ -392,10 +394,11 @@ chain = chain.then(function () {
     assert.strictEqual(html.indexOf('src="tgdirect.js'), -1, "отправка загружается до нажатия кнопки");
     assert.strictEqual(html.indexOf('src="orderlink.js'), -1, "страховочная ссылка загружается заранее");
     var site = fs.readFileSync(path.join(ROOT, "site.js"), "utf8");
-    assert.ok(site.indexOf("tgdirect.js?v=4") !== -1, "нет загрузки модуля отправки по запросу");
+    assert.ok(site.indexOf("tgdirect.js?v=5") !== -1, "нет загрузки модуля отправки по запросу");
     assert.ok(site.indexOf("orderlink.js?v=4") !== -1, "нет загрузки запасной ссылки при ошибке");
     assert.ok(site.indexOf("TgDirect") !== -1, "форма не вызывает отправку");
     assert.ok(site.indexOf("orderLink.botLink") !== -1, "нет запасного пути через бота");
+    assert.ok(site.indexOf("plainText") !== -1, "нет запасного пути для заявки из нескольких позиций");
   });
 
   check("галерея загружается только если в каталоге есть шаблоны", function () {

@@ -49,6 +49,9 @@ var DIM_MIN = 1;
 var DIM_MAX = 500;
 var QTY_MIN = 1;
 var QTY_MAX = 10000;
+/* Сколько разных наклеек можно положить в одну заявку (влезает в одно
+   сообщение Telegram и в разумную строку таблицы). */
+var CART_MAX_ITEMS = 20;
 
 function byId(list, id) {
   for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
@@ -171,7 +174,10 @@ function calculateEstimate(raw) {
     minOrder: price.minOrder,
     minApplied: price.minApplied,
     toMin: price.toMin,
-    total: price.total
+    total: price.total,
+    /* Цена самой позиции без минимума: в корзине минимум 500 ₽ считается
+       на весь заказ, а не на каждую наклейку. */
+    lineTotal: price.gross
   };
 }
 
@@ -185,9 +191,10 @@ function contactKind(value) {
   return "Telegram";
 }
 
-/* Проверка полей заказа. Возвращает {ok, error, value} — value уже
-   нормализовано и содержит только известные серверу значения. */
-function validate(raw) {
+/* Проверка одной наклейки: материал, дизайн, цвет, форма, размер и тираж.
+   Возвращает {ok, error, value}. Её используют и одиночная заявка (validate),
+   и каждая позиция корзины (validateCart). */
+function validateItem(raw) {
   if (!raw || typeof raw !== "object") return { ok: false, error: "Пустой запрос" };
 
   var film = byId(FILMS, raw.film);
@@ -204,15 +211,9 @@ function validate(raw) {
   if (!isFinite(h) || h < DIM_MIN || h > DIM_MAX) return { ok: false, error: "Высота: от 1 до 500 см" };
   if (!isFinite(qty) || qty < QTY_MIN || qty > QTY_MAX) return { ok: false, error: "Тираж: от 1 до 10 000 шт" };
 
-  var name = String(raw.name || "").trim().slice(0, 80);
-  var contact = String(raw.contact || "").trim().slice(0, 64);
-  var delivery = String(raw.delivery || "").trim().slice(0, 160);
-  var comment = String(raw.comment || "").trim().slice(0, 600);
   /* Эскиз — просто подпись выбранного примера, на цену не влияет. */
   var sketch = String(raw.sketch || "").trim().slice(0, 80);
-
-  if (name.length < 2) return { ok: false, error: "Укажите имя (минимум 2 символа)" };
-  if (!CONTACT_RE.test(contact)) return { ok: false, error: "Укажите контакт: @username, телефон или e-mail" };
+  var shape = SHAPES[raw.shape] ? raw.shape : "rectangle";
 
   return {
     ok: true,
@@ -220,15 +221,103 @@ function validate(raw) {
       film: film.id, filmName: film.name, filmRate: film.rate,
       design: design.id, designName: design.name,
       color: color.id, colorName: color.name,
-      shape: SHAPES[raw.shape] ? raw.shape : "rectangle",
-      shapeName: SHAPES[SHAPES[raw.shape] ? raw.shape : "rectangle"],
+      shape: shape, shapeName: SHAPES[shape],
       w: w, h: h, qty: qty,
-      name: name, contact: contact, contactKind: contactKind(contact),
-      delivery: delivery, comment: comment,
-      sketch: sketch,
-      clientTotal: isFinite(Number(raw.client_total)) ? Math.round(Number(raw.client_total)) : null
+      sketch: sketch
     }
   };
+}
+
+/* Проверка данных клиента: имя, контакт, получение, комментарий. */
+function validateCustomer(raw) {
+  var name = String(raw.name || "").trim().slice(0, 80);
+  var contact = String(raw.contact || "").trim().slice(0, 64);
+  var delivery = String(raw.delivery || "").trim().slice(0, 160);
+  var comment = String(raw.comment || "").trim().slice(0, 600);
+
+  if (name.length < 2) return { ok: false, error: "Укажите имя (минимум 2 символа)" };
+  if (!CONTACT_RE.test(contact)) return { ok: false, error: "Укажите контакт: @username, телефон или e-mail" };
+
+  return {
+    ok: true,
+    value: {
+      name: name, contact: contact, contactKind: contactKind(contact),
+      delivery: delivery, comment: comment,
+      clientTotal: isFinite(Number(raw.client_total)) && raw.client_total !== null && raw.client_total !== ""
+        ? Math.round(Number(raw.client_total)) : null
+    }
+  };
+}
+
+/* Проверка полей заказа из одной наклейки. Возвращает {ok, error, value} —
+   value уже нормализовано и содержит только известные серверу значения. */
+function validate(raw) {
+  var item = validateItem(raw);
+  if (!item.ok) return item;
+  var customer = validateCustomer(raw);
+  if (!customer.ok) return customer;
+  return { ok: true, value: Object.assign({}, item.value, customer.value) };
+}
+
+/* ---------------------------------------------------------------------------
+   КОРЗИНА: несколько разных наклеек в одной заявке.
+
+   Каждая позиция считается той же quote(), что и одиночный заказ (свой размер,
+   тираж и скидка за тираж), но минимальный заказ 500 ₽ действует на всю
+   корзину целиком: две наклейки по 300 ₽ — это 600 ₽, а не 1 000 ₽.
+   ------------------------------------------------------------------------ */
+
+/* Позиции уже проверенные (validateItem) → цены по строкам и итог. */
+function quoteCart(items) {
+  var list = Array.isArray(items) ? items : [];
+  var lines = [];
+  var subtotal = 0;
+  var pieces = 0;
+  for (var i = 0; i < list.length; i++) {
+    var price = quote(list[i]);
+    if (!price) return null;
+    lines.push({
+      item: list[i],
+      area: price.area,
+      unit: price.unit,
+      setup: price.setup,
+      discountPercent: price.discountPercent,
+      total: price.gross          /* без минимума: он применяется ко всей корзине */
+    });
+    subtotal += price.gross;
+    pieces += Number(list[i].qty) || 0;
+  }
+  var total = list.length ? Math.max(MIN_ORDER_PRICE, subtotal) : 0;
+  return {
+    lines: lines,
+    count: list.length,
+    pieces: pieces,
+    subtotal: subtotal,
+    total: total,
+    minApplied: list.length > 0 && total > subtotal,
+    toMin: list.length ? Math.max(0, MIN_ORDER_PRICE - subtotal) : 0,
+    minOrder: MIN_ORDER_PRICE
+  };
+}
+
+/* Проверка заявки с корзиной: {items: [...], name, contact, delivery, comment}.
+   Возвращает {ok, error, value}, где value.items — нормализованные позиции. */
+function validateCart(raw) {
+  if (!raw || typeof raw !== "object") return { ok: false, error: "Пустой запрос" };
+  var list = raw.items;
+  if (!Array.isArray(list) || !list.length) return { ok: false, error: "Корзина пуста: добавьте хотя бы одну наклейку" };
+  if (list.length > CART_MAX_ITEMS) {
+    return { ok: false, error: "В одной заявке не больше " + CART_MAX_ITEMS + " позиций" };
+  }
+  var items = [];
+  for (var i = 0; i < list.length; i++) {
+    var checked = validateItem(list[i]);
+    if (!checked.ok) return { ok: false, error: "Позиция " + (i + 1) + ": " + checked.error };
+    items.push(checked.value);
+  }
+  var customer = validateCustomer(raw);
+  if (!customer.ok) return customer;
+  return { ok: true, value: Object.assign({ items: items }, customer.value) };
 }
 
 /* Экранирование для parse_mode=HTML в Telegram. */
@@ -286,6 +375,88 @@ function orderMessage(order, price, meta) {
   return lines.join("\n");
 }
 
+/* Одна позиция корзины — компактный блок для сообщения и таблицы. */
+function itemTitle(item) {
+  return item.filmName + " · " + item.designName + " · " + item.colorName + " · " + item.shapeName;
+}
+
+/* Текст заявки с корзиной для модератора. Тот же стиль, что и orderMessage,
+   но позиции перечислены списком, а итог считается по всей корзине. */
+function cartMessage(order, cart, meta) {
+  var m = meta || {};
+  var lines = [];
+  lines.push("🆕 <b>Заказ №" + escapeHtml(m.orderId) + "</b> · " + cart.count + " " + plural(cart.count, "позиция", "позиции", "позиций"));
+  lines.push("");
+  lines.push("👤 <b>Имя:</b> " + escapeHtml(order.name));
+  lines.push("📞 <b>Контакт:</b> " + escapeHtml(order.contact) + " (" + escapeHtml(order.contactKind) + ")");
+  if (order.delivery) lines.push("🚚 <b>Получение:</b> " + escapeHtml(order.delivery));
+  lines.push("");
+  lines.push("🧩 <b>Состав заказа</b>");
+  cart.lines.forEach(function (line, index) {
+    var item = line.item;
+    lines.push("");
+    lines.push("<b>" + (index + 1) + ".</b> " + escapeHtml(itemTitle(item)));
+    if (item.sketch) lines.push("    Эскиз: " + escapeHtml(item.sketch));
+    var size = "    " + item.w + " × " + item.h + " см × " + item.qty + " шт";
+    var tail = [];
+    if (line.discountPercent > 0) tail.push("скидка −" + line.discountPercent + "%");
+    if (line.setup > 0) tail.push("макет " + money(line.setup));
+    lines.push(size + " — <b>" + money(line.total) + "</b>" + (tail.length ? " (" + tail.join(", ") + ")" : ""));
+  });
+  lines.push("");
+  lines.push("💰 <b>Итого: " + money(cart.total) + "</b> · " + cart.pieces + " шт");
+  if (cart.minApplied) {
+    lines.push("📌 Позиции вышли дешевле минимума (" + money(cart.subtotal) + ") — принято по минимуму " + money(cart.minOrder));
+  }
+  if (order.clientTotal != null && order.clientTotal !== cart.total) {
+    lines.push("⚠️ В заявке указана другая сумма: " + money(order.clientTotal) + " — пересчитайте по прайсу");
+  }
+  if (order.comment) {
+    lines.push("");
+    lines.push("💬 <b>Комментарий:</b> " + escapeHtml(order.comment));
+  }
+  if (m.userId) {
+    lines.push("");
+    lines.push("🔗 <a href=\"tg://user?id=" + Number(m.userId) + "\">Написать клиенту в Telegram</a>");
+  }
+  lines.push("");
+  lines.push("<i>" + escapeHtml(m.time) + (m.dryRun ? " · тестовый режим" : "") + "</i>");
+  return lines.join("\n");
+}
+
+function plural(n, one, few, many) {
+  var a = Math.abs(n) % 100;
+  var b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+
+/* Заявка → данные для Google-таблицы. Одна позиция — одна строка, поэтому
+   по таблице удобно считать материал; общие поля заявки (имя, контакт, итог)
+   повторяются в каждой строке, а «Итого заказа» стоит только в первой. */
+var SHEET_COLUMNS = [
+  "Номер заявки", "Дата (МСК)", "Статус", "Имя", "Контакт", "Тип контакта", "Получение", "Комментарий",
+  "№ позиции", "Плёнка", "Дизайн", "Цвет", "Форма", "Эскиз",
+  "Ширина, см", "Высота, см", "Тираж, шт", "Цена за 1 шт, ₽", "Скидка за тираж, %", "Макет, ₽", "Сумма позиции, ₽",
+  "Итого заказа, ₽", "Позиций в заказе", "Минимум применён"
+];
+
+function sheetRows(order, cart, meta) {
+  var m = meta || {};
+  return cart.lines.map(function (line, index) {
+    var item = line.item;
+    var first = index === 0;
+    return [
+      m.orderId, m.time, "Новая", order.name, order.contact, order.contactKind, order.delivery, order.comment,
+      index + 1, item.filmName, item.designName, item.colorName, item.shapeName, item.sketch,
+      item.w, item.h, item.qty, line.unit, line.discountPercent, line.setup, line.total,
+      first ? cart.total : "", first ? cart.count : "", first ? (cart.minApplied ? "да" : "нет") : ""
+    ];
+  });
+}
+
 var API = {
   FILMS: FILMS,
   DESIGNS: DESIGNS,
@@ -298,11 +469,20 @@ var API = {
   DIM_MAX: DIM_MAX,
   QTY_MIN: QTY_MIN,
   QTY_MAX: QTY_MAX,
+  CART_MAX_ITEMS: CART_MAX_ITEMS,
+  SHEET_COLUMNS: SHEET_COLUMNS,
   byId: byId,
   quote: quote,
   calculate: calculate,
   calculateEstimate: calculateEstimate,
   validate: validate,
+  validateItem: validateItem,
+  validateCustomer: validateCustomer,
+  validateCart: validateCart,
+  quoteCart: quoteCart,
+  cartMessage: cartMessage,
+  sheetRows: sheetRows,
+  plural: plural,
   contactKind: contactKind,
   escapeHtml: escapeHtml,
   orderMessage: orderMessage,

@@ -185,6 +185,14 @@
     .pill:hover { transform: translateY(-1px); color: var(--text); border-color: var(--cyan); box-shadow: 0 0 20px rgba(34, 211, 238, .3); }
     .pill--tg { border-color: rgba(34, 211, 238, .38); color: var(--cyan); }
     .pill--tg:hover { box-shadow: 0 0 24px rgba(34, 211, 238, .45); }
+
+    .pill--cart { position: relative; }
+    .pill__count {
+      display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center;
+      padding: 0 6px; border-radius: 999px; background: var(--cyan); color: var(--accent-ink);
+      font-size: 11px; font-weight: 850; font-variant-numeric: tabular-nums;
+    }
+    .pill__count[hidden] { display: none; }
     .pill--order { border-color: transparent; background: linear-gradient(120deg, var(--cyan), var(--violet)); color: var(--accent-ink); }
     .pill--order:hover { box-shadow: 0 0 28px rgba(168, 85, 247, .55); }
 
@@ -652,6 +660,85 @@
     .order-status--warn { border-color: rgba(251, 191, 36, .4); background: rgba(251, 191, 36, .08); color: #fde68a; }
     .order-status__link { color: var(--cyan); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 
+
+    /* =====================================================================
+       КОРЗИНА
+       ===================================================================== */
+    .button--add { width: 100%; min-height: 54px; }
+    .button--add:disabled { cursor: not-allowed; }
+    .add-note { margin: 12px 0 0; color: var(--muted-2); font-size: 11px; line-height: 1.6; }
+    .add-status {
+      margin: 12px 0 0; padding: 10px 14px; border: 1px solid rgba(74, 222, 128, .4); border-radius: 12px;
+      background: rgba(74, 222, 128, .09); color: #bbf7d0; font-size: 12.5px; line-height: 1.5;
+      animation: pop .35s var(--ease);
+    }
+    .add-status[hidden] { display: none; }
+    .add-status a { color: var(--cyan); font-weight: 700; text-underline-offset: 3px; }
+
+    .cart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 6px; }
+    .cart-head h3 { margin: 0; }
+    .cart-clear {
+      padding: 6px 10px; border: 0; background: none; color: var(--muted-2);
+      font: inherit; font-size: 11.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+    }
+    .cart-clear:hover { color: #fb7185; }
+    .cart-clear[hidden] { display: none; }
+
+    .cart-list { display: grid; gap: 10px; margin: 0 0 16px; padding: 0; list-style: none; }
+    .cart-empty {
+      margin: 0 0 20px; padding: 22px 16px; border: 1px dashed var(--line-strong); border-radius: 14px;
+      color: var(--muted-2); font-size: 12.5px; line-height: 1.6; text-align: center;
+    }
+    .cart-empty[hidden] { display: none; }
+
+    .cart-item {
+      display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 6px 14px; align-items: start;
+      padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255, 255, 255, .03);
+    }
+    .cart-item__num {
+      display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center;
+      border: 1px solid rgba(34, 211, 238, .35); border-radius: 10px; color: var(--cyan);
+      font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+    }
+    .cart-item__body { min-width: 0; }
+    .cart-item__title { margin: 0 0 3px; color: var(--text); font-size: 13.5px; font-weight: 750; line-height: 1.4; overflow-wrap: anywhere; }
+    .cart-item__meta { margin: 0; color: var(--muted-2); font-size: 11.5px; line-height: 1.55; overflow-wrap: anywhere; }
+    .cart-item__price { color: var(--text); font-size: 15px; font-weight: 820; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .cart-item__tools { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 6px; }
+    .qty-stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; }
+    .qty-stepper button {
+      width: 34px; height: 34px; border: 0; background: rgba(255, 255, 255, .04); color: var(--text);
+      font: inherit; font-size: 16px; cursor: pointer;
+    }
+    .qty-stepper button:hover { background: rgba(34, 211, 238, .16); }
+    .qty-stepper input {
+      width: 62px; height: 34px; padding: 0 4px; border: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+      background: rgba(6, 8, 18, .75); color: var(--text); font: inherit; font-size: 13px; text-align: center;
+      -moz-appearance: textfield; outline: none;
+    }
+    .qty-stepper input::-webkit-outer-spin-button, .qty-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .qty-stepper input:focus { background: rgba(34, 211, 238, .1); }
+    .cart-item__unit { color: var(--muted-2); font-size: 11px; }
+    .cart-item__remove {
+      margin-left: auto; padding: 6px 10px; border: 1px solid transparent; border-radius: 9px; background: none;
+      color: var(--muted-2); font: inherit; font-size: 11.5px; cursor: pointer;
+    }
+    .cart-item__remove:hover { border-color: rgba(251, 113, 133, .45); color: #fb7185; }
+
+    .cart-total {
+      margin: 0 0 22px; padding: 14px 16px; border: 1px solid rgba(34, 211, 238, .28); border-radius: 14px;
+      background: rgba(34, 211, 238, .05);
+    }
+    .cart-total[hidden] { display: none; }
+    .cart-total__row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 4px 0; color: var(--muted); font-size: 12px; }
+    .cart-total__row strong { color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+    .cart-total__row[hidden] { display: none; }
+    .cart-total__row--min strong { color: var(--lime); }
+    .cart-total__row--sum { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
+    .cart-total__row--sum strong { font-size: 22px; font-weight: 850; letter-spacing: -.03em; }
+    .order-actions .button:disabled { cursor: not-allowed; }
+    .customer-title { margin: 0 0 14px; font-size: 14px; font-weight: 800; }
+
     /* =====================================================================
        ПОДВАЛ
        ===================================================================== */
@@ -768,6 +855,10 @@
       .result-row strong { max-width: 46%; font-size: 12px; }
       .order-summary, .order-status { overflow-wrap: anywhere; }
       .order-actions .button { flex: 1 1 100%; min-width: 0; padding: 12px 14px; gap: 8px; font-size: 13px; }
+      .cart-item { grid-template-columns: 28px minmax(0, 1fr); padding: 12px; }
+      .cart-item__num { width: 28px; height: 28px; }
+      .cart-item__price { grid-column: 2; text-align: left; }
+      .cart-item__tools { grid-column: 1 / -1; }
 
       .footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
       .footer-links { gap: 12px 16px; }
@@ -842,6 +933,10 @@
         <a class="pill pill--tg" href="https://t.me/+aZLbDN640q5hNGYy" target="_blank" rel="noopener">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3 18.7 19c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8 8.7-7.9c.4-.3-.1-.5-.6-.2L6.3 12.7 1.6 11c-1-.3-1-1 .2-1.5l19-7.3c.8-.3 1.6.2 1.1 2.1z"/></svg>
           Канал
+        </a>
+        <a class="pill pill--cart" href="#cart" aria-label="Корзина заказа">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h3l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8l1.4-7.2H6.4"/></svg>
+          Корзина<span class="pill__count" id="cart-badge" hidden>0</span>
         </a>
         <a class="pill pill--order" href="#calculator">от 3 ₽/см²</a>
       </div>
@@ -989,15 +1084,18 @@
       <div class="container">
         <div class="section-head">
           <p class="kicker kicker--muted">04 / Расчёт и заявка</p>
-          <h2 id="calculator-title">Посчитайте и оставьте заявку</h2>
-          <p>Укажите плёнку, размеры в сантиметрах и количество. Итог пересчитается сразу, а форма отправит заказ менеджеру в Telegram.</p>
+          <h2 id="calculator-title">Соберите заказ из нескольких наклеек</h2>
+          <p>Настройте наклейку и подтвердите её — она ляжет в корзину. Так можно собрать разные наклейки, с разными размерами, плёнкой и тиражом, в одной заявке. Когда всё готово — нажмите «Отправить заявку» в корзине.</p>
         </div>
 
         <div class="order-shell">
-          <!-- --- Калькулятор --- -->
+          <!-- --- Калькулятор: одна наклейка --- -->
           <div class="calc-panel">
-            <h3>Параметры расчёта</h3>
-            <p class="panel-lead">Материал по площади со скидкой за тираж. Минимальный заказ — 500 ₽.</p>
+            <h3>Параметры наклейки</h3>
+            <p class="panel-lead">Материал по площади со скидкой за тираж. Минимальный заказ — 500 ₽ на всю корзину.</p>
+
+            <p class="order-template" id="order-template" hidden></p>
+            <p class="order-template" id="order-sketch-note" hidden></p>
 
             <div class="field field--full">
               <label class="field-label" for="film-type">Тип плёнки</label>
@@ -1033,17 +1131,27 @@
                 <label class="field-label" for="order-color">Цвет</label>
                 <select id="order-color" name="color"></select>
               </div>
+              <div class="field">
+                <label class="field-label" for="order-shape">Форма</label>
+                <select id="order-shape" name="shape"></select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="order-sketch">Эскиз</label>
+                <select id="order-sketch" name="sketch">
+                  <option value="">Свой эскиз</option>
+                </select>
+              </div>
             </div>
 
             <p class="calc-hint" id="calculator-hint">Размер заготовки — от 1 до 500 см, количество — от 1 до 10 000 шт. Скидка за тираж: от 5 шт −10%, от 10 −18%, от 25 −25%, от 50 −32%, от 100 −40%.</p>
             <p class="calc-error" id="calc-error" role="alert" hidden></p>
           </div>
 
-          <!-- --- Итог --- -->
+          <!-- --- Итог по этой наклейке --- -->
           <aside class="result-panel" aria-label="Результат расчёта" aria-live="polite">
             <div>
-              <span class="result-kicker"><span aria-hidden="true"></span>Расчёт заказа</span>
-              <p class="result-title">Стоимость заказа</p>
+              <span class="result-kicker"><span aria-hidden="true"></span>Эта наклейка</span>
+              <p class="result-title">Стоимость позиции</p>
               <strong class="result-total" id="total-price">—</strong>
               <span class="result-subtitle" id="result-subtitle">считаем стоимость</span>
             </div>
@@ -1054,18 +1162,36 @@
               <div class="result-row result-row--save" id="discount-row" hidden><span>Скидка за тираж</span><strong id="discount-value">—</strong></div>
               <div class="result-row result-row--min" id="min-row" hidden><span>Минимальный заказ 500 ₽</span><strong id="min-value">—</strong></div>
             </div>
-            <p class="result-footnote">Итог — материал по площади со скидкой за тираж и минимумом заказа 500 ₽. Разработка макета, если она нужна, считается отдельно и подтверждается менеджером.</p>
+            <div>
+              <button class="button button--add" id="cart-add" type="button">
+                Подтвердить и добавить в корзину
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+              </button>
+              <p class="add-status" id="cart-add-status" role="status" hidden></p>
+              <p class="add-note">После добавления можно настроить другую наклейку — другой размер, плёнку или тираж — и добавить её в ту же заявку. Разработка макета, если она нужна, подтверждается менеджером.</p>
+            </div>
           </aside>
 
-          <!-- --- Форма заявки --- -->
-          <div class="form-panel">
-            <h3>Оставить заявку</h3>
-            <p class="panel-lead">Заполните контакты — заказ уйдёт менеджеру в Telegram. Без регистрации и подтверждений.</p>
+          <!-- --- Корзина и отправка заявки --- -->
+          <div class="form-panel" id="cart">
+            <div class="cart-head">
+              <h3>Корзина</h3>
+              <button class="cart-clear" id="cart-clear" type="button" hidden>Очистить корзину</button>
+            </div>
+            <p class="panel-lead" id="cart-lead">Здесь собираются подтверждённые наклейки. Заявка уходит менеджеру одним сообщением в Telegram и записывается в таблицу заказов.</p>
 
             <form id="order-form" novalidate>
-              <p class="order-template" id="order-template" hidden></p>
-              <p class="order-template" id="order-sketch-note" hidden></p>
+              <p class="cart-empty" id="cart-empty">Корзина пуста. Настройте наклейку выше и нажмите «Подтвердить и добавить в корзину».</p>
+              <ol class="cart-list" id="cart-list" aria-label="Наклейки в корзине"></ol>
 
+              <div class="cart-total" id="cart-total" hidden>
+                <div class="cart-total__row"><span id="cart-count-label">Позиций</span><strong id="cart-count">0</strong></div>
+                <div class="cart-total__row"><span>Сумма позиций</span><strong id="cart-subtotal">—</strong></div>
+                <div class="cart-total__row cart-total__row--min" id="cart-min-row" hidden><span>Минимальный заказ 500 ₽</span><strong id="cart-min-value">—</strong></div>
+                <div class="cart-total__row cart-total__row--sum"><span>Итого по заказу</span><strong id="cart-total-sum">—</strong></div>
+              </div>
+
+              <h4 class="customer-title">Контакты для связи</h4>
               <div class="form-grid">
                 <div class="field">
                   <label class="field-label" for="order-name">Имя</label>
@@ -1075,17 +1201,7 @@
                   <label class="field-label" for="order-contact">Телефон, Telegram или e-mail</label>
                   <input id="order-contact" name="contact" type="text" maxlength="64" placeholder="+7 900 000-00-00" autocomplete="tel">
                 </div>
-                <div class="field">
-                  <label class="field-label" for="order-shape">Форма</label>
-                  <select id="order-shape" name="shape"></select>
-                </div>
-                <div class="field">
-                  <label class="field-label" for="order-sketch">Эскиз</label>
-                  <select id="order-sketch" name="sketch">
-                    <option value="">Свой эскиз</option>
-                  </select>
-                </div>
-                <div class="field">
+                <div class="field field--wide">
                   <label class="field-label" for="order-delivery">Получение</label>
                   <input id="order-delivery" name="delivery" type="text" maxlength="160" placeholder="Самовывоз, курьер, СДЭК" autocomplete="off">
                 </div>
@@ -1095,15 +1211,15 @@
                 </div>
               </div>
 
-              <p class="order-summary" id="order-summary">Укажите размеры — и мы соберём заявку.</p>
+              <p class="order-summary" id="order-summary">Корзина пуста — добавьте хотя бы одну наклейку.</p>
 
               <div class="order-actions">
-                <button class="button" id="order-send" type="submit">
-                  Отправить заявку в Telegram
+                <button class="button" id="order-send" type="submit" disabled>
+                  Отправить заявку
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3.5 10h12m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
               </div>
-              <p class="order-note">Заявка уходит напрямую в Telegram. Мы не передаём контакты третьим лицам.</p>
+              <p class="order-note">Заявка уходит менеджеру в Telegram и записывается в таблицу заказов. Мы не передаём контакты третьим лицам.</p>
 
               <p class="order-status" id="order-status" role="status" hidden></p>
             </form>
@@ -1130,11 +1246,12 @@
   </noscript>
 
   <!-- Минимальный стартовый набор; тяжёлые модули заявки и галереи подключаются по запросу. -->
-  <script defer src="pricing.js?v=3"></script>
+  <script defer src="pricing.js?v=4"></script>
   <script defer src="site.config.js?v=3"></script>
+  <script defer src="cart.js?v=1"></script>
   <script defer src="templates/catalog.js?v=4"></script>
   <script defer src="sketches/catalog.js?v=3"></script>
   <script defer src="gallery-loader.js?v=5"></script>
-  <script defer src="site.js?v=5"></script>
+  <script defer src="site.js?v=6"></script>
 </body>
 </html>
