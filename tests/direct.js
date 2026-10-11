@@ -316,10 +316,10 @@ chain = chain.then(function () {
   console.log("\n4. Когда заявка не уходит — это видно");
   var fetchStub = makeFetch({ badToken: true });
   return sendWith(fetchStub).then(function (reply) {
-    check("неверный токен: отказ и подсказка про @BotFather", function () {
+    check("неверный токен: подсказка проверить свойства Apps Script", function () {
       assert.strictEqual(reply.ok, false);
       assert.strictEqual(reply.kind, "telegram");
-      assert.ok(/BotFather/.test(reply.hint), "нет подсказки: " + reply.hint);
+      assert.ok(/Google Apps Script/.test(reply.hint), "нет подсказки: " + reply.hint);
     });
   });
 });
@@ -354,7 +354,7 @@ chain = chain.then(function () {
     check("незаполненный tgdirect.js объясняет сам себя", function () {
       assert.strictEqual(reply.ok, false);
       assert.strictEqual(reply.kind, "config");
-      assert.ok(/tgdirect\.js/.test(reply.hint), "нет подсказки: " + reply.hint);
+      assert.ok(/Apps Script/.test(reply.hint), "нет подсказки: " + reply.hint);
     });
   });
 });
@@ -481,18 +481,16 @@ chain = chain.then(function () {
     });
   });
 
-  check("токен бота лежит только в tgdirect.js и настроен", function () {
+  check("секретного токена нет в публичных файлах сайта", function () {
     var files = ["index.html", "site.js", "site.config.js", "gallery-loader.js", "gallery.js",
-      "pricing.js", "orderlink.js", "templates.js", "templates/catalog.js"];
+      "pricing.js", "orderlink.js", "templates.js", "templates/catalog.js", "tgdirect.js"];
     files.forEach(function (name) {
       var text = fs.readFileSync(path.join(ROOT, name), "utf8");
       assert.ok(!/\d{8,}:[A-Za-z0-9_-]{30,}/.test(text), "токен найден в " + name);
     });
-    /* Проверяем сам файл: к этому моменту предыдущие тесты уже подменили
-     настройки модуля заглушкой, поэтому состояние в памяти не годится. */
     var direct = fs.readFileSync(path.join(ROOT, "tgdirect.js"), "utf8");
-    assert.ok(/var BOT_TOKEN = "\d{8,}:[A-Za-z0-9_-]{30,}"/.test(direct), "в tgdirect.js нет токена бота");
-    assert.ok(/var CHAT_ID = "7114829971"/.test(direct), "в tgdirect.js не задан chat_id модератора");
+    assert.ok(/var BOT_TOKEN = ""/.test(direct), "токен должен храниться вне публичного JS");
+    assert.ok(/var CHAT_ID = ""/.test(direct), "chat_id не должен задаваться в tgdirect.js");
   });
 });
 

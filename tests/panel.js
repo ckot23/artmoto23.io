@@ -314,11 +314,8 @@ chain = chain.then(function () {
   });
 });
 
-/* 8. Токен панели — только из полей админки, в её файлах его нет.
-
-   Исключение одно и намеренное: tgdirect.js. Там токен лежит открыто, иначе
-   сайт не смог бы отправить заявку сам, без сервера (см. README → «Токен
-   лежит в файлах»). Все остальные файлы токен содержать не должны. */
+/* 8. Токен панели вводится владельцем, а заявочный токен сайта хранится
+   в свойствах Apps Script. В открытых файлах сайта реального токена нет. */
 chain = chain.then(function () {
   console.log("\n8. Токен не попадает в файлы панели");
   var html = fs.readFileSync(path.join(ROOT, "bot.html"), "utf8");
@@ -333,9 +330,9 @@ chain = chain.then(function () {
     assert.ok(html.indexOf("vault.session()") !== -1, "панель не читает сессию");
     assert.ok(html.indexOf("AdminLock.createVault") !== -1, "панель не использует замок");
   });
-  check("кроме tgdirect.js токена в файлах нет", function () {
+  check("секретного токена нет в исходниках сайта и Apps Script", function () {
     var files = ["bot.html", "admin.html", "botpanel.js", "botcore.js",
-      "adminlock.js", "index.html", "orderlink.js", "pricing.js"];
+      "adminlock.js", "index.html", "orderlink.js", "pricing.js", "tgdirect.js", "google-apps-script/Code.gs"];
     var found = files.filter(function (name) {
       var text = fs.readFileSync(path.join(ROOT, name), "utf8");
       return /\d{8,}:[A-Za-z0-9_-]{30,}/.test(text);

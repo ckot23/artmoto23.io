@@ -646,14 +646,17 @@
   function showSuccess(reply) {
     if (!elements.status) return;
     elements.status.hidden = false;
-    elements.status.className = "order-status order-status--ok";
+    var warnings = Array.isArray(reply.warnings) ? reply.warnings.filter(Boolean) : [];
+    elements.status.className = warnings.length ? "order-status order-status--warn" : "order-status order-status--ok";
     var count = reply.count || 1;
-    elements.status.textContent = "Заявка " + reply.order_id + " принята (" + count + " " +
-      plural(count, "позиция", "позиции", "позиций") + ", " + formatMoney(reply.total) + ") — мы напишем вам в Telegram."
+    var message = "Заявка " + reply.order_id + " принята (" + count + " " +
+      plural(count, "позиция", "позиции", "позиций") + ", " + formatMoney(reply.total) + ") — мы свяжемся с вами."
       + (config.replyTime ? " " + config.replyTime + "." : "");
-    if (reply.warnings && reply.warnings.length && typeof console !== "undefined") {
-      console.warn("Заявка принята не везде: " + reply.warnings.join("; "));
+    if (warnings.length) {
+      message += " Предупреждение: " + warnings.join("; ") + ". Если с вами не связались, пожалуйста, напишите менеджеру.";
+      if (typeof console !== "undefined") console.warn("Заявка принята с предупреждениями: " + warnings.join("; "));
     }
+    elements.status.textContent = message;
     if (elements.form) elements.form.reset();
     if (cart) cart.clear();            /* перерисует корзину и сводку */
     if (elements.cartAddStatus) elements.cartAddStatus.hidden = true;

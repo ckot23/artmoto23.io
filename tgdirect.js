@@ -1,42 +1,25 @@
 "use strict";
 /* ============================================================================
-   Прямая отправка заявки в Telegram — из браузера, без сервера.
+   Отправка заявки сайта через Google Apps Script.
 
-   Раньше заявка шла так:  сайт → POST /api/order → server.js → Telegram.
-   Теперь так:             сайт → api.telegram.org/bot<ТОКЕН>/sendMessage.
+   Заявка корзины уходит в веб-приложение Apps Script. Оно записывает данные
+   в Google Таблицу и отправляет уведомление в Telegram от имени бота.
+   Токен хранится в свойствах Apps Script и не публикуется в браузере.
 
-   Хостинг для этого не нужен: сайт может лежать на GitHub Pages, на флешке
-   или в Mini App — браузер сам обращается к Bot API (он отдаёт CORS-заголовки,
-   так же работает панель bot.html).
-
-   ⚠️  ТОКЕН ЛЕЖИТ ПРЯМО ЗДЕСЬ, А ЗНАЧИТ ВИДЕН ВСЕМ, кто открыл сайт или
-   репозиторий. Любой, у кого есть токен, может читать переписку бота
-   (getUpdates) и писать от его имени. Поэтому:
-     • заведите для сайта ОТДЕЛЬНОГО бота, не используйте личного;
-     • не давайте этому боту админку в своих каналах и группах;
-     • если бот начал вести себя странно — /revoke у @BotFather и новый токен
-       сюда же, в одну строку ниже.
-   Заявки от этого не потеряются: приходят они всё равно только на CHAT_ID.
+   Для внутренней совместимости в файле оставлены функции прямой отправки
+   отдельных заявок, но публичная форма использует только Apps Script.
    ========================================================================= */
 
 /* ---------------------------------------------------------------------------
-   НАСТРОЙКИ — единственное, что нужно заполнить.
+   НАСТРОЙКИ — адрес веб-приложения Apps Script.
    ------------------------------------------------------------------------ */
 
-/* Токен бота от @BotFather → /mybots → ваш бот → API Token. */
-var BOT_TOKEN = "8964570845:AAEjL-kjYnsrxOg3KblpJH6tZPGgX9Fszm8";
+/* Токен и chat_id НЕ задаются в этом публичном файле.
+   Добавьте их в свойствах Apps Script: BOT_TOKEN и MODERATOR_CHAT_ID. */
+var BOT_TOKEN = "";
+var CHAT_ID = "";
 
-/* Кому присылать заявки: ваш chat_id числом (узнать — напишите боту /id
-   в панели bot.html или откройте @userinfobot). Можно несколько получателей
-   через запятую: "7114829971,123456789". */
-var CHAT_ID = "7114829971";
-
-/* Google-таблица для заявок: адрес веб-приложения Google Apps Script
-   (вида https://script.google.com/macros/s/AKfycb.../exec).
-   Как его получить — в README, раздел «Заявки в Google-таблицу», код скрипта
-   лежит в google-apps-script/Code.gs. Пока строка пустая, заявки уходят только
-   в Telegram. Адрес не секретный в том смысле, что токена в нём нет, но он
-   виден всем, как и токен бота выше. */
+/* Адрес веб-приложения (заканчивается на /exec). */
 var SHEET_URL = "https://script.google.com/macros/s/AKfycbypfdfavi0nIz1HgsfP9fXamMgYnEbCJq0pJk5fh_2eLKvp-_9vxhLA30-Vtk29Joru6A/exec";
 
 /* ------------------------------------------------------------------------ */
@@ -58,8 +41,8 @@ var config = {
   fetch: null            /* подменяется в тестах */
 };
 
-/* Настройки можно переопределить на лету: так делают тесты, а при желании —
-   страница админки (localStorage), если токен не хочется держать в файле. */
+/* Настройки можно переопределить на лету — например, тестовой заглушкой.
+   Публичная форма сайта не хранит здесь секреты и отправляет через Apps Script. */
 function configure(patch) {
   var next = patch || {};
   if (next.token !== undefined) config.token = String(next.token || "").trim();
@@ -132,10 +115,10 @@ function moscowTime(date) {
 /* Ошибки Telegram человеческим языком — те же формулировки, что в botpanel.js. */
 function hintFor(code, description) {
   var text = String(description || "").toLowerCase();
-  if (code === 401) return "токен в tgdirect.js недействителен: возьмите свежий у @BotFather (/mybots → API Token)";
+  if (code === 401) return "токен бота недействителен: проверьте BOT_TOKEN в свойствах Google Apps Script";
   if (code === 403) return "получатель не начинал диалог с ботом: откройте чат с ботом и нажмите «Start»";
-  if (code === 400 && text.indexOf("chat not found") !== -1) return "CHAT_ID указан неверно: напишите боту /id и возьмите число оттуда";
-  if (code === 400 && text.indexOf("parse") !== -1) return "текст заявки не прошёл разметку HTML — сообщите разработчику";
+  if (code === 400 && text.indexOf("chat not found") !== -1) return "MODERATOR_CHAT_ID указан неверно: проверьте ID в свойствах Google Apps Script";
+  if (code === 400 && text.indexOf("parse") !== -1) return "текст заявки не прошёл разметку — сообщите разработчику";
   if (code === 429) return "Telegram просит подождать: слишком много сообщений подряд";
   if (text.indexOf("failed to fetch") !== -1 || text.indexOf("networkerror") !== -1 ||
       text.indexOf("load failed") !== -1 || text.indexOf("abort") !== -1) {
@@ -168,7 +151,7 @@ function call(method, payload) {
 /* Проверка настроек: живой ли токен и чей он. Нужна владельцу, а не клиенту. */
 function check() {
   if (!isReady()) {
-    return Promise.resolve({ ok: false, error: "В tgdirect.js не заполнены BOT_TOKEN и CHAT_ID" });
+    return Promise.resolve({ ok: false, error: "Для прямой отправки не заданы BOT_TOKEN и CHAT_ID." });
   }
   return call("getMe", {}).then(function (data) {
     if (data && data.ok && data.result) return { ok: true, bot: data.result };
@@ -183,11 +166,10 @@ function check() {
 /* Кто писал боту — чтобы узнать свой chat_id при настройке.
    Напишите боту любое сообщение и выполните в консоли сайта:
        await TgDirect.chats()
-   Вернётся список вида [{ id: 7114829971, name: "Пётр", username: "petr_777" }];
-   нужное число вписывается в CHAT_ID наверху этого файла. */
+   Вернётся список чатов. Публичная форма сайта использует настройки Apps Script. */
 function chats() {
   if (!config.token) {
-    return Promise.resolve({ ok: false, error: "В tgdirect.js не заполнен BOT_TOKEN" });
+    return Promise.resolve({ ok: false, error: "Для прямой отправки не задан BOT_TOKEN." });
   }
   return call("getUpdates", { limit: 100 }).then(function (data) {
     if (!data || !data.ok) {
@@ -280,7 +262,7 @@ function send(raw, options) {
       ok: false,
       kind: "config",
       error: "Отправка заявок не настроена",
-      hint: "впишите BOT_TOKEN и CHAT_ID в начале файла tgdirect.js"
+      hint: "Одиночная прямая отправка отключена; заявка с сайта использует веб-приложение Google Apps Script."
     });
   }
 
@@ -364,17 +346,28 @@ function sheetPost(payload) {
 
   return attempt(false).then(function (response) {
     return response.json().then(function (data) {
-      if (data && data.ok) return { ok: true };
-      return { ok: false, error: (data && data.error) || "таблица не приняла заявку" };
+      if (!data || !data.ok) {
+        return { ok: false, error: (data && data.error) || "Google Apps Script не принял заявку" };
+      }
+      return {
+        ok: true,
+        sheetOk: typeof data.sheetOk === "boolean" ? data.sheetOk : true,
+        detailsOk: typeof data.detailsOk === "boolean" ? data.detailsOk : null,
+        telegramOk: typeof data.telegramOk === "boolean" ? data.telegramOk : null,
+        sheetError: data.sheetError || "",
+        detailsError: data.detailsError || "",
+        telegramError: data.telegramError || ""
+      };
     }, function () {
       /* Ответ пришёл, но не JSON (страница входа Google, ошибка скрипта). */
-      return { ok: false, error: "таблица ответила не так, как ожидалось: проверьте доступ веб-приложения («У всех»)" };
+      return { ok: false, error: "Google Apps Script ответил не JSON: проверьте развёртывание и доступ «Все»." };
     });
   }, function () {
     return attempt(true).then(function () {
-      return { ok: true, blind: true };
+      /* CORS может скрыть результат, но запрос уже обработан на стороне Apps Script. */
+      return { ok: true, blind: true, sheetOk: null, detailsOk: null, telegramOk: null };
     }, function (error) {
-      return { ok: false, error: error && error.message ? error.message : "нет связи" };
+      return { ok: false, error: error && error.message ? error.message : "Нет связи с Google Apps Script." };
     });
   });
 }
@@ -386,30 +379,21 @@ function sheetEnabled() {
 /* ---------------------------------------------------------------------------
    ЗАЯВКА С КОРЗИНОЙ
 
-   {items: [{film, design, color, shape, sketch, w, h, qty}, ...],
-    name, contact, delivery, comment, client_total}
-
-   Одна заявка уходит двумя путями одновременно:
-     • уведомление в Telegram — всем получателям из CHAT_ID;
-     • строки в Google-таблицу — по строке на позицию.
-   Заявка считается принятой, если дошла хотя бы до одного места: менеджер
-   увидит её либо в чате, либо в таблице. Если Telegram принял, а таблица нет,
-   менеджеру в чат уходит отдельное предупреждение — чтобы внести строки руками.
+   Одна отправка в Apps Script обслуживает оба канала: сводный лист «Заказы»,
+   подробный лист «Заявки» и Telegram. Бот-токен остаётся только на серверной
+   стороне Google Apps Script.
    ------------------------------------------------------------------------ */
 function sendCart(raw, options) {
   var opts = options || {};
-
   var checked = P.validateCart(raw);
   if (!checked.ok) return Promise.resolve({ ok: false, error: checked.error, kind: "field" });
 
-  var telegramReady = isReady();
-  var sheetReady = sheetEnabled();
-  if (!telegramReady && !sheetReady) {
+  if (!sheetEnabled()) {
     return Promise.resolve({
       ok: false,
       kind: "config",
-      error: "Отправка заявок не настроена",
-      hint: "впишите BOT_TOKEN и CHAT_ID в начале файла tgdirect.js"
+      error: "Не настроен адрес Google Apps Script",
+      hint: "Укажите URL веб-приложения Apps Script в SHEET_URL файла tgdirect.js."
     });
   }
 
@@ -418,85 +402,48 @@ function sendCart(raw, options) {
   var now = opts.now instanceof Date ? opts.now : new Date();
   var orderId = opts.orderId || newOrderId(now);
   var meta = { orderId: orderId, time: moscowTime(now), userId: opts.userId };
-  var parts = splitMessage(P.cartMessage(order, cart, meta));
+  var payload = {
+    action: "order",
+    order_id: orderId,
+    columns: P.SHEET_COLUMNS,
+    rows: P.sheetRows(order, cart, meta)
+  };
 
-  /* Telegram: каждому получателю — все части по порядку. */
-  var telegram = !telegramReady ? Promise.resolve({ skipped: true }) :
-    Promise.all(recipients().map(function (chatId) {
-      return parts.reduce(function (chain, text) {
-        return chain.then(function (prev) {
-          if (prev && prev.failed) return prev;
-          return sendMessage(chatId, text).then(function (data) {
-            return data && data.ok ? { chatId: chatId } : { chatId: chatId, failed: true, data: data };
-          }, function (error) {
-            return { chatId: chatId, failed: true, error: error };
-          });
-        });
-      }, Promise.resolve(null));
-    })).then(function (results) {
-      var delivered = results.filter(function (item) { return item && !item.failed; });
-      if (delivered.length) return { ok: true };
-      var first = results[0] || {};
-      if (first.error) {
-        var netReason = first.error.message ? first.error.message : "нет связи";
-        return {
-          ok: false, kind: "network",
-          error: "Не удалось связаться с Telegram (" + netReason + ")",
-          hint: hintFor(0, netReason)
-        };
-      }
-      var reason = (first.data && first.data.description) || "Telegram не принял заявку";
-      return { ok: false, kind: "telegram", error: reason, hint: hintFor(first.data && first.data.error_code, reason) };
-    });
-
-  /* Таблица: общий payload с готовыми строками. */
-  var sheet = !sheetReady ? Promise.resolve({ skipped: true }) :
-    sheetPost({
-      action: "order",
-      order_id: orderId,
-      columns: P.SHEET_COLUMNS,
-      rows: P.sheetRows(order, cart, meta)
-    }).then(null, function (error) {
-      return { ok: false, error: error && error.message ? error.message : "нет связи" };
-    });
-
-  return Promise.all([telegram, sheet]).then(function (done) {
-    var tg = done[0];
-    var sh = done[1];
-    var tgOk = !!tg.ok;
-    var shOk = !!sh.ok;
-
-    if (!tgOk && !shOk) {
-      /* Объясняем причину по Telegram — это основной канал; если он не
-         настроен, то по таблице. */
-      var main = tg.skipped ? { error: "Таблица не приняла заявку: " + (sh.error || "нет ответа"), kind: "sheet", hint: "" } : tg;
-      return { ok: false, kind: main.kind, error: main.error, hint: main.hint };
+  return sheetPost(payload).then(function (result) {
+    if (!result.ok) {
+      return {
+        ok: false,
+        kind: "backend",
+        error: result.error || "Google Apps Script не принял заявку",
+        hint: "Проверьте развёртывание Apps Script и права доступа «Все»."
+      };
     }
 
-    /* Заявка дошла не везде — предупреждаем менеджера в чат. */
-    if (tgOk && sheetReady && !shOk) {
-      var warn = "⚠️ <b>Заказ №" + P.escapeHtml(orderId) + "</b> не записался в Google-таблицу" +
-        (sh.error ? " (" + P.escapeHtml(sh.error) + ")" : "") + ". Внесите его вручную из сообщения выше.";
-      return Promise.all(recipients().map(function (chatId) {
-        return sendMessage(chatId, warn).then(null, function () { return null; });
-      })).then(function () { return done; });
+    var warnings = [];
+    if (result.sheetOk === false) warnings.push("Таблица: " + (result.sheetError || "не удалось записать сводку"));
+    if (result.detailsOk === false) warnings.push("Подробности позиций: " + (result.detailsError || "не записаны"));
+    if (result.telegramOk === false) warnings.push("Telegram: " + (result.telegramError || "бот не подтвердил отправку"));
+    if (result.telegramOk === null && !result.blind) {
+      warnings.push("Telegram: Apps Script не вернул статус отправки — обновите его код и разверните новую версию.");
     }
-    return done;
-  }).then(function (done) {
-    if (done && done.ok === false) return done;       /* ответ об ошибке из ветки выше */
-    var tg = done[0];
-    var sh = done[1];
+    if (result.blind) warnings.push("Google не показал ответ браузеру; проверьте лист «Заказы» и Telegram.");
+
     return {
       ok: true,
       order_id: orderId,
       total: cart.total,
       count: cart.count,
-      telegram: tg.skipped ? "skipped" : (tg.ok ? "sent" : "failed"),
-      sheet: sh.skipped ? "skipped" : (sh.ok ? (sh.blind ? "sent-blind" : "sent") : "failed"),
-      warnings: [
-        !tg.skipped && !tg.ok ? "Telegram: " + tg.error : "",
-        !sh.skipped && !sh.ok ? "Таблица: " + sh.error : ""
-      ].filter(Boolean)
+      telegram: result.telegramOk === true ? "sent" : (result.telegramOk === false ? "failed" : "unknown"),
+      sheet: result.sheetOk === true ? "sent" : (result.sheetOk === false ? "failed" : "unknown"),
+      details: result.detailsOk === true ? "sent" : (result.detailsOk === false ? "failed" : "unknown"),
+      warnings: warnings
+    };
+  }, function (error) {
+    return {
+      ok: false,
+      kind: "network",
+      error: error && error.message ? error.message : "Нет связи с Google Apps Script.",
+      hint: "Проверьте интернет, URL веб-приложения и его доступ «Все»."
     };
   });
 }
