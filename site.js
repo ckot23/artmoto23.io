@@ -509,7 +509,7 @@
   }
 
   function loadDirect() {
-    return loadScriptOnce("tgdirect.js?v=5", hasDirect);
+    return loadScriptOnce("tgdirect.js?v=6", hasDirect);
   }
 
   function loadOrderLink() {
