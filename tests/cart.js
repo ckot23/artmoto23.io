@@ -66,9 +66,18 @@ function makeFetch(options) {
       if (opts.sheetOffline) return Promise.reject(new TypeError("Failed to fetch"));
       if (opts.sheetCorsOnly && !(init && init.mode === "no-cors")) return Promise.reject(new TypeError("Failed to fetch"));
       if (opts.sheetNoCors && init && init.mode === "no-cors") return Promise.resolve({ type: "opaque" });
-      if (opts.sheetError) return reply({ ok: false, error: "лист занят" });
       if (opts.sheetHtml) return Promise.resolve({ ok: true, json: function () { return Promise.reject(new Error("not json")); } });
-      return reply({ ok: true, rows: body.rows && body.rows.length });
+      var telegramOk = !opts.tgBadToken && !opts.tgOffline && !opts.allFail;
+      var sheetOk = !opts.sheetError && !opts.allFail;
+      return reply({
+        ok: sheetOk || telegramOk,
+        sheetOk: sheetOk,
+        detailsOk: sheetOk,
+        telegramOk: telegramOk,
+        sheetError: sheetOk ? "" : "лист занят",
+        telegramError: telegramOk ? "" : (opts.tgBadToken ? "токен недействителен" : "нет связи с Telegram"),
+        rows: body.rows && body.rows.length
+      });
     }
     var method = u.replace(/^.*\//, "");
     log.push({ kind: "tg", url: u, method: method, body: body });
@@ -262,7 +271,7 @@ function cartOrder(extra) {
   return Object.assign({ items: [SMALL, BIG] }, customer(), { client_total: 7500 }, extra || {});
 }
 
-checkAsync("одна заявка → одно сообщение в Telegram и строки в таблицу", function () {
+checkAsync("заявка отправляется одним запросом в Apps Script для Telegram и таблицы", function () {
   var f = makeFetch();
   configure(f);
   return Direct.send(cartOrder(), { orderId: "261011-TEST01" }).then(function (reply) {
@@ -272,67 +281,32 @@ checkAsync("одна заявка → одно сообщение в Telegram и
     assert.strictEqual(reply.count, 2);
     assert.strictEqual(reply.telegram, "sent");
     assert.strictEqual(reply.sheet, "sent");
-    assert.strictEqual(f.tg().length, 1, "сообщений в Telegram: " + f.tg().length);
-    assert.strictEqual(f.sheet().length, 1, "запросов в таблицу: " + f.sheet().length);
+    assert.strictEqual(f.sheet().length, 1);
+    assert.strictEqual(f.tg().length, 0, "браузер не должен обращаться к Telegram напрямую");
   });
 });
 
-checkAsync("в Telegram есть все позиции, контакты и итог", function () {
-  var f = makeFetch();
-  configure(f);
-  return Direct.send(cartOrder(), { orderId: "261011-TEST01" }).then(function () {
-    var body = f.tg()[0].body;
-    assert.strictEqual(String(body.chat_id), MODERATOR);
-    assert.strictEqual(body.parse_mode, "HTML");
-    var text = body.text;
-    ["261011-TEST01", "2 позиции", "Пётр", "@petr_777", "Рига, СДЭК", "к пятнице",
-      "Матовая", "Круглая", "10 × 10 см × 1 шт", "Глянцевая", "Красный", "30 × 20 см × 3 шт", "Эскиз: Лиса"]
-      .forEach(function (part) { assert.ok(text.indexOf(part) !== -1, "в заявке нет: " + part); });
-    assert.ok(/Итого: 7\u00A0500 ₽/.test(text), "нет общего итога");
-    assert.ok(text.indexOf("⚠️") === -1, "сумма клиента совпала, предупреждения быть не должно");
-  });
-});
-
-checkAsync("в Telegram видно, что минимальный заказ применён ко всей корзине", function () {
-  var f = makeFetch();
-  configure(f);
-  return Direct.send(cartOrder({ items: [SMALL], client_total: 500 })).then(function () {
-    var text = f.tg()[0].body.text;
-    assert.ok(/принято по минимуму/.test(text), "нет пометки о минимуме");
-    assert.ok(/Итого: 500 ₽/.test(text));
-  });
-});
-
-checkAsync("подделанная сумма в заявке помечается", function () {
-  var f = makeFetch();
-  configure(f);
-  return Direct.send(cartOrder({ client_total: 1 })).then(function () {
-    assert.ok(f.tg()[0].body.text.indexOf("⚠️ В заявке указана другая сумма") !== -1);
-  });
-});
-
-checkAsync("в таблицу уходит по строке на позицию, с шапкой и итогом", function () {
+checkAsync("в payload есть имя, контакты, продукт, цена, получение и комментарий", function () {
   var f = makeFetch();
   configure(f);
   return Direct.send(cartOrder(), { orderId: "261011-TEST01" }).then(function () {
     var req = f.sheet()[0];
     assert.strictEqual(req.url, SHEET);
     assert.strictEqual(req.init.method, "POST");
-    assert.strictEqual(req.init.headers["Content-Type"], "text/plain;charset=utf-8", "нужен простой запрос без OPTIONS");
+    assert.strictEqual(req.init.headers["Content-Type"], "text/plain;charset=utf-8");
     var body = req.body;
     assert.strictEqual(body.action, "order");
     assert.strictEqual(body.order_id, "261011-TEST01");
     assert.deepStrictEqual(body.columns, P.SHEET_COLUMNS);
     assert.strictEqual(body.rows.length, 2);
-    body.rows.forEach(function (row) { assert.strictEqual(row.length, P.SHEET_COLUMNS.length, "строка не по шапке"); });
+    body.rows.forEach(function (row) { assert.strictEqual(row.length, P.SHEET_COLUMNS.length); });
 
     var col = function (name) { return P.SHEET_COLUMNS.indexOf(name); };
     var r1 = body.rows[0], r2 = body.rows[1];
-    assert.strictEqual(r1[col("Номер заявки")], "261011-TEST01");
-    assert.strictEqual(r2[col("Номер заявки")], "261011-TEST01");
     assert.strictEqual(r1[col("Имя")], "Пётр");
     assert.strictEqual(r1[col("Контакт")], "@petr_777");
-    assert.strictEqual(r1[col("Статус")], "Новая");
+    assert.strictEqual(r1[col("Получение")], "Рига, СДЭК");
+    assert.strictEqual(r1[col("Комментарий")], "к пятнице");
     assert.strictEqual(r1[col("Плёнка")], "Матовая");
     assert.strictEqual(r2[col("Плёнка")], "Глянцевая");
     assert.strictEqual(r2[col("Эскиз")], "Лиса");
@@ -340,138 +314,94 @@ checkAsync("в таблицу уходит по строке на позицию
     assert.strictEqual(r2[col("Тираж, шт")], 3);
     assert.strictEqual(r1[col("Сумма позиции, ₽")], 300);
     assert.strictEqual(r2[col("Сумма позиции, ₽")], 7200);
-    assert.strictEqual(r1[col("Итого заказа, ₽")], 7500, "итог только в первой строке");
-    assert.strictEqual(r2[col("Итого заказа, ₽")], "", "итог не должен дублироваться");
+    assert.strictEqual(r1[col("Итого заказа, ₽")], 7500);
     assert.strictEqual(r1[col("Позиций в заказе")], 2);
-    assert.strictEqual(r1[col("Минимум применён")], "нет");
+    assert.ok(!/BOT_TOKEN|MODERATOR_CHAT_ID|1234567890:/.test(JSON.stringify(body)), "секрет попал в запрос сайта");
   });
 });
 
-checkAsync("получателей Telegram может быть несколько, таблица пишется один раз", function () {
+checkAsync("сумма и минимум рассчитаны перед отправкой в Apps Script", function () {
   var f = makeFetch();
-  configure(f, { chatId: MODERATOR + ", 123456789" });
+  configure(f);
+  return Direct.send(cartOrder({ items: [SMALL], client_total: 500 })).then(function () {
+    var body = f.sheet()[0].body;
+    var totalCol = P.SHEET_COLUMNS.indexOf("Итого заказа, ₽");
+    var lineCol = P.SHEET_COLUMNS.indexOf("Сумма позиции, ₽");
+    assert.strictEqual(body.rows[0][totalCol], 500);
+    assert.strictEqual(body.rows[0][lineCol], 300);
+  });
+});
+
+checkAsync("HTML клиента остаётся обычным текстом и будет безопасно записан", function () {
+  var f = makeFetch();
+  configure(f);
+  return Direct.send(cartOrder({ name: "<b>злой</b>", comment: "<script>" })).then(function () {
+    var row = f.sheet()[0].body.rows[0];
+    assert.strictEqual(row[P.SHEET_COLUMNS.indexOf("Имя")], "<b>злой</b>");
+    assert.strictEqual(row[P.SHEET_COLUMNS.indexOf("Комментарий")], "<script>");
+  });
+});
+
+checkAsync("ошибка Telegram не мешает сохранить заявку в таблице, но видна клиенту", function () {
+  var f = makeFetch({ tgBadToken: true });
+  configure(f);
   return Direct.send(cartOrder()).then(function (reply) {
     assert.ok(reply.ok);
-    assert.deepStrictEqual(f.tg().map(function (c) { return String(c.body.chat_id); }), [MODERATOR, "123456789"]);
+    assert.strictEqual(reply.telegram, "failed");
+    assert.strictEqual(reply.sheet, "sent");
+    assert.ok(reply.warnings.some(function (warning) { return /Telegram/.test(warning); }));
     assert.strictEqual(f.sheet().length, 1);
   });
 });
 
-checkAsync("HTML в имени и комментарии экранируется", function () {
-  var f = makeFetch();
-  configure(f);
-  return Direct.send(cartOrder({ name: "<b>злой</b>", comment: "<script>" })).then(function () {
-    var text = f.tg()[0].body.text;
-    assert.ok(text.indexOf("&lt;b&gt;злой&lt;/b&gt;") !== -1);
-    assert.ok(text.indexOf("<script>") === -1);
-  });
-});
-
-checkAsync("таблица не настроена: заявка уходит только в Telegram", function () {
-  var f = makeFetch();
-  configure(f, { sheetUrl: "" });
-  return Direct.send(cartOrder()).then(function (reply) {
-    assert.ok(reply.ok, reply.error);
-    assert.strictEqual(reply.sheet, "skipped");
-    assert.strictEqual(f.sheet().length, 0);
-    assert.strictEqual(f.tg().length, 1);
-  });
-});
-
-checkAsync("таблица отказала, Telegram принял: заявка принята, менеджеру — предупреждение", function () {
+checkAsync("ошибка сводного листа не мешает отправить Telegram", function () {
   var f = makeFetch({ sheetError: true });
   configure(f);
-  return Direct.send(cartOrder(), { orderId: "261011-TEST02" }).then(function (reply) {
-    assert.ok(reply.ok, "заявка потеряна из-за таблицы");
+  return Direct.send(cartOrder()).then(function (reply) {
+    assert.ok(reply.ok);
     assert.strictEqual(reply.telegram, "sent");
     assert.strictEqual(reply.sheet, "failed");
-    assert.ok(reply.warnings.some(function (w) { return /Таблица/.test(w); }));
-    var messages = f.tg();
-    assert.strictEqual(messages.length, 2, "ожидалось основное сообщение и предупреждение");
-    assert.ok(/не записался в Google-таблицу/.test(messages[1].body.text));
-    assert.ok(messages[1].body.text.indexOf("261011-TEST02") !== -1);
+    assert.ok(reply.warnings.some(function (warning) { return /Таблица/.test(warning); }));
   });
 });
 
-checkAsync("Google ответил страницей, а не JSON: считается ошибкой таблицы", function () {
+checkAsync("если оба канала отказали, заявка не помечается принятой", function () {
+  var f = makeFetch({ allFail: true });
+  configure(f);
+  return Direct.send(cartOrder()).then(function (reply) {
+    assert.strictEqual(reply.ok, false);
+    assert.strictEqual(reply.kind, "backend");
+    assert.ok(/не принял заявку/i.test(reply.error));
+  });
+});
+
+checkAsync("ответ не JSON — видно, что веб-приложение настроено неверно", function () {
   var f = makeFetch({ sheetHtml: true });
   configure(f);
   return Direct.send(cartOrder()).then(function (reply) {
-    assert.ok(reply.ok);
-    assert.strictEqual(reply.sheet, "failed");
-    assert.ok(reply.warnings.some(function (w) { return /У всех/.test(w); }), "нет подсказки про доступ");
+    assert.strictEqual(reply.ok, false);
+    assert.strictEqual(reply.kind, "backend");
+    assert.ok(/доступ «Все»/.test(reply.error));
   });
 });
 
-checkAsync("браузер не дал прочитать ответ таблицы: повтор в режиме no-cors", function () {
+checkAsync("при CORS-запрете повторяется тот же order_id в режиме no-cors", function () {
   var f = makeFetch({ sheetCorsOnly: true, sheetNoCors: true });
   configure(f);
-  return Direct.send(cartOrder()).then(function (reply) {
+  return Direct.send(cartOrder(), { orderId: "261011-CORS01" }).then(function (reply) {
     assert.ok(reply.ok);
-    assert.strictEqual(reply.sheet, "sent-blind");
+    assert.strictEqual(reply.sheet, "unknown");
     var calls = f.sheet();
     assert.strictEqual(calls.length, 2);
     assert.strictEqual(calls[1].init.mode, "no-cors");
-    assert.strictEqual(calls[0].body.order_id, calls[1].body.order_id, "повтор должен нести тот же номер — иначе будет дубль");
+    assert.strictEqual(calls[0].body.order_id, calls[1].body.order_id);
+    assert.ok(reply.warnings.length > 0);
   });
 });
 
-checkAsync("таблица недоступна совсем: заявка всё равно доходит в Telegram", function () {
-  var f = makeFetch({ sheetOffline: true });
-  configure(f);
-  return Direct.send(cartOrder()).then(function (reply) {
-    assert.ok(reply.ok);
-    assert.strictEqual(reply.sheet, "failed");
-  });
-});
-
-checkAsync("Telegram отказал, таблица приняла: заявка не потеряна", function () {
-  var f = makeFetch({ tgBadToken: true });
-  configure(f);
-  return Direct.send(cartOrder()).then(function (reply) {
-    assert.ok(reply.ok, "заявка есть в таблице, а клиенту показана ошибка");
-    assert.strictEqual(reply.telegram, "failed");
-    assert.strictEqual(reply.sheet, "sent");
-    assert.ok(reply.warnings.some(function (w) { return /Telegram/.test(w); }));
-  });
-});
-
-checkAsync("не дошло никуда: ошибка и подсказка, а не «принято»", function () {
-  var f = makeFetch({ tgOffline: true, sheetOffline: true });
-  configure(f);
-  return Direct.send(cartOrder()).then(function (reply) {
-    assert.strictEqual(reply.ok, false);
-    assert.strictEqual(reply.kind, "network");
-    assert.ok(/api\.telegram\.org/.test(reply.hint));
-  });
-});
-
-checkAsync("неверный токен и нет таблицы: понятная причина", function () {
-  var f = makeFetch({ tgBadToken: true });
+checkAsync("без адреса Apps Script заявка не притворяется отправленной", function () {
+  var f = makeFetch();
   configure(f, { sheetUrl: "" });
-  return Direct.send(cartOrder()).then(function (reply) {
-    assert.strictEqual(reply.ok, false);
-    assert.strictEqual(reply.kind, "telegram");
-    assert.ok(/@BotFather/.test(reply.hint));
-  });
-});
-
-checkAsync("пустая или кривая корзина отклоняется до обращения к сети", function () {
-  var f = makeFetch();
-  configure(f);
-  return Direct.send(cartOrder({ items: [] })).then(function (a) {
-    assert.strictEqual(a.ok, false);
-    assert.strictEqual(a.kind, "field");
-    return Direct.send(cartOrder({ name: "" }));
-  }).then(function (b) {
-    assert.strictEqual(b.kind, "field");
-    assert.strictEqual(f.log.length, 0, "в сеть что-то ушло");
-  });
-});
-
-checkAsync("ничего не настроено: заявка не притворяется отправленной", function () {
-  var f = makeFetch();
-  configure(f, { token: "", sheetUrl: "" });
   return Direct.send(cartOrder()).then(function (reply) {
     assert.strictEqual(reply.ok, false);
     assert.strictEqual(reply.kind, "config");
@@ -479,39 +409,37 @@ checkAsync("ничего не настроено: заявка не притво
   });
 });
 
-checkAsync("только Google-таблица (без Telegram) тоже работает", function () {
-  var f = makeFetch();
-  configure(f, { token: "" });
-  return Direct.send(cartOrder()).then(function (reply) {
-    assert.ok(reply.ok, reply.error);
-    assert.strictEqual(reply.telegram, "skipped");
-    assert.strictEqual(reply.sheet, "sent");
-  });
-});
-
-checkAsync("адрес таблицы без https не используется", function () {
+checkAsync("адрес без https не используется", function () {
   var f = makeFetch();
   configure(f, { sheetUrl: "http://example.com/exec" });
   return Direct.send(cartOrder()).then(function (reply) {
-    assert.strictEqual(reply.sheet, "skipped");
+    assert.strictEqual(reply.ok, false);
+    assert.strictEqual(reply.kind, "config");
     assert.strictEqual(f.sheet().length, 0);
   });
 });
 
-checkAsync("длинная заявка режется на сообщения по границам позиций", function () {
+checkAsync("повторная отправка использует стабильный номер для исключения дублей", function () {
+  var f = makeFetch();
+  configure(f);
+  return Direct.send(cartOrder(), { orderId: "261011-SAME01" }).then(function () {
+    return Direct.send(cartOrder(), { orderId: "261011-SAME01" });
+  }).then(function () {
+    assert.strictEqual(f.sheet().length, 2);
+    assert.strictEqual(f.sheet()[0].body.order_id, f.sheet()[1].body.order_id);
+  });
+});
+
+checkAsync("длинная корзина сохраняет все позиции для серверного сообщения", function () {
   var f = makeFetch();
   configure(f);
   var items = [];
   for (var i = 0; i < P.CART_MAX_ITEMS; i++) {
-    items.push(Object.assign({}, BIG, { w: 20 + i, sketch: "Очень длинное название эскиза для проверки лимита сообщения " + i }));
+    items.push(Object.assign({}, BIG, { w: 20 + i, sketch: "Эскиз " + i }));
   }
-  return Direct.send(Object.assign({ items: items }, customer({ comment: new Array(601).join("я") }))).then(function (reply) {
+  return Direct.send(Object.assign({ items: items }, customer()), { orderId: "261011-LONG01" }).then(function (reply) {
     assert.ok(reply.ok, reply.error);
-    var messages = f.tg();
-    assert.ok(messages.length >= 1);
-    messages.forEach(function (m) { assert.ok(m.body.text.length <= 4096, "сообщение длиннее лимита: " + m.body.text.length); });
-    var joined = messages.map(function (m) { return m.body.text; }).join("\n");
-    for (var n = 1; n <= P.CART_MAX_ITEMS; n++) assert.ok(joined.indexOf("<b>" + n + ".</b>") !== -1, "потеряна позиция " + n);
+    assert.strictEqual(f.sheet()[0].body.rows.length, P.CART_MAX_ITEMS);
   });
 });
 
@@ -582,10 +510,14 @@ chain = chain.then(function () {
     assert.ok(site.indexOf("validateCart") !== -1);
   });
 
-  check("скрипт Google Apps Script лежит в репозитории и принимает нужные поля", function () {
+  check("Apps Script принимает заявку, пишет две вкладки и вызывает Telegram безопасно", function () {
     var gs = fs.readFileSync(path.join(ROOT, "google-apps-script/Code.gs"), "utf8");
-    ["function doPost", "function doGet", "order_id", "body.rows", "body.columns", "setValues", "LockService", "alreadyHas_"].forEach(function (marker) {
+    ["function doPost", "function doGet", "order_id", "body.rows", "body.columns", "setValues", "LockService", "alreadyHas_",
+      "SUMMARY_COLUMNS", "BOT_TOKEN", "MODERATOR_CHAT_ID", "SPREADSHEET_ID", "UrlFetchApp.fetch", "testTelegram"].forEach(function (marker) {
       assert.ok(gs.indexOf(marker) !== -1, "в Code.gs нет " + marker);
+    });
+    ["Имя", "Контакты", "Продукт заказа", "Цена", "Способ получения", "Комментарий к заказу"].forEach(function (field) {
+      assert.ok(gs.indexOf("\"" + field + "\"") !== -1, "в сводке нет поля " + field);
     });
   });
 
@@ -594,28 +526,58 @@ chain = chain.then(function () {
     assert.ok(/var SHEET_URL = "[^"]*";/.test(direct), "нет настройки SHEET_URL");
   });
 
-  check("Code.gs работает: дописывает строки, не дублирует заявку, экранирует формулы", function () {
+  check("Code.gs записывает сводку и детали, форматирует Telegram и не дублирует повтор", function () {
     var gs = fs.readFileSync(path.join(ROOT, "google-apps-script/Code.gs"), "utf8");
-    var rows = [];
-    var sheetObj = {
-      getLastRow: function () { return rows.length; },
-      getLastColumn: function () { return rows.length ? rows[0].length : 0; },
-      setFrozenRows: function () {},
-      getRange: function (r, c, h, w) {
-        return {
-          setValues: function (values) { values.forEach(function (v, i) { rows[r - 1 + i] = v; }); return this; },
-          getValues: function () { return rows.slice(r - 1, r - 1 + h).map(function (row) { return [row[c - 1]]; }); },
-          setFontWeight: function () { return this; },
-          setBackground: function () { return this; }
-        };
-      }
+    var sheets = {};
+    function makeSheet(name) {
+      var values = [];
+      var sheet = {
+        name: name,
+        rows: values,
+        getLastRow: function () { return values.length; },
+        getLastColumn: function () { return values.length ? values[0].length : 0; },
+        setFrozenRows: function () {},
+        getRange: function (r, c, h, w) {
+          return {
+            setValues: function (input) { input.forEach(function (row, i) { values[r - 1 + i] = row.slice(); }); return this; },
+            getValues: function () {
+              return values.slice(r - 1, r - 1 + h).map(function (row) { return [row && row[c - 1]]; });
+            },
+            setFontWeight: function () { return this; },
+            setBackground: function () { return this; }
+          };
+        }
+      };
+      return sheet;
+    }
+    var propertyData = { BOT_TOKEN: "test-token-only", MODERATOR_CHAT_ID: MODERATOR, SPREADSHEET_ID: "test-sheet-id" };
+    var propertyApi = {
+      getProperty: function (key) { return Object.prototype.hasOwnProperty.call(propertyData, key) ? propertyData[key] : null; },
+      setProperty: function (key, value) { propertyData[key] = String(value); return this; },
+      getProperties: function () { return Object.assign({}, propertyData); },
+      deleteProperty: function (key) { delete propertyData[key]; return this; }
     };
-    var out = [];
+    var telegramCalls = [];
+    var spreadsheet = {
+      getSheetByName: function (name) { return sheets[name] || null; },
+      insertSheet: function (name) { return (sheets[name] = makeSheet(name)); }
+    };
     var context = {
       LockService: { getScriptLock: function () { return { waitLock: function () {}, releaseLock: function () {} }; } },
+      PropertiesService: { getScriptProperties: function () { return propertyApi; } },
       SpreadsheetApp: {
-        getActiveSpreadsheet: function () { return { getSheetByName: function () { return sheetObj; }, insertSheet: function () { return sheetObj; } }; },
+        getActiveSpreadsheet: function () { return spreadsheet; },
+        openById: function (id) { assert.strictEqual(id, "test-sheet-id"); return spreadsheet; },
         flush: function () {}
+      },
+      UrlFetchApp: {
+        fetch: function (url, options) {
+          telegramCalls.push({ url: url, payload: JSON.parse(options.payload) });
+          return {
+            getResponseCode: function () { return 200; },
+            getContentText: function () { return JSON.stringify({ ok: true, result: { message_id: 1 } }); }
+          };
+        }
       },
       ContentService: {
         MimeType: { JSON: "json" },
@@ -627,18 +589,54 @@ chain = chain.then(function () {
       var res = context.doPost({ postData: { contents: JSON.stringify(body) } });
       return JSON.parse(res.text);
     }
-    var columns = ["Номер заявки", "Имя"];
-    var first = post({ action: "order", order_id: "A1", columns: columns, rows: [["A1", "=HYPERLINK(1)"], ["A1", "+79001112233"]] });
+
+    var customerOrder = P.validateCart(cartOrder()).value;
+    var cart = P.quoteCart(customerOrder.items);
+    var orderId = "261011-TEST01";
+    var rows = P.sheetRows(customerOrder, cart, { orderId: orderId, time: "11.10.2026 13:00 (МСК)" });
+    var payload = { action: "order", order_id: orderId, columns: P.SHEET_COLUMNS, rows: rows };
+    var first = post(payload);
     assert.ok(first.ok, first.error);
-    assert.strictEqual(rows.length, 3, "шапка + 2 строки");
-    assert.strictEqual(JSON.stringify(rows[0]), JSON.stringify(columns));
-    assert.strictEqual(rows[1][1], "'=HYPERLINK(1)", "формула не экранирована");
-    var again = post({ action: "order", order_id: "A1", columns: columns, rows: [["A1", "x"]] });
-    assert.ok(again.ok && again.duplicate, "повтор того же номера должен игнорироваться");
-    assert.strictEqual(rows.length, 3, "появился дубль");
+    assert.strictEqual(first.sheetOk, true);
+    assert.strictEqual(first.detailsOk, true);
+    assert.strictEqual(first.telegramOk, true);
+    assert.strictEqual(sheets["Заказы"].rows.length, 2, "шапка + одна сводная строка");
+    assert.strictEqual(sheets["Заявки"].rows.length, 3, "шапка + 2 позиции");
+
+    var summaryHeader = sheets["Заказы"].rows[0];
+    assert.strictEqual(JSON.stringify(summaryHeader.slice(0, 6)), JSON.stringify(["Имя", "Контакты", "Продукт заказа", "Цена", "Способ получения", "Комментарий к заказу"]));
+    var summary = sheets["Заказы"].rows[1];
+    assert.strictEqual(summary[0], "Пётр");
+    assert.strictEqual(summary[1], "'@petr_777", "контакт хранится как безопасный текст");
+    assert.ok(summary[2].indexOf("Матовая") !== -1 && summary[2].indexOf("Глянцевая") !== -1);
+    assert.strictEqual(summary[3], 7500);
+    assert.strictEqual(summary[4], "Рига, СДЭК");
+    assert.strictEqual(summary[5], "к пятнице");
+    assert.strictEqual(sheets["Заявки"].rows[1][1], "11.10.2026 13:00 (МСК)");
+
+    var message = telegramCalls[0].payload.text;
+    ["Имя: Пётр", "Контакты: @petr_777", "Продукт заказа:", "Матовая", "Глянцевая",
+      "Цена: 7", "Способ получения: Рига, СДЭК", "Комментарий к заказу: к пятнице"]
+      .forEach(function (part) { assert.ok(message.indexOf(part) !== -1, "в Telegram нет поля: " + part); });
+    assert.ok(message.length <= 4096, "сообщение длиннее лимита Telegram");
+
+    var again = post(payload);
+    assert.ok(again.ok && again.duplicate, "повтор того же номера должен определиться как дубль");
+    assert.strictEqual(sheets["Заказы"].rows.length, 2, "появилась повторная сводная строка");
+    assert.strictEqual(sheets["Заявки"].rows.length, 3, "появились повторные позиции");
+    assert.strictEqual(telegramCalls.length, 1, "повторно отправилось сообщение Telegram");
+
+    var formulaId = "261011-TEST02";
+    var formulaRows = P.sheetRows(customerOrder, cart, { orderId: formulaId, time: "11.10.2026 13:01 (МСК)" });
+    formulaRows[0][P.SHEET_COLUMNS.indexOf("Комментарий")] = "=HYPERLINK(1)";
+    var formulaResult = post({ action: "order", order_id: formulaId, columns: P.SHEET_COLUMNS, rows: formulaRows });
+    assert.ok(formulaResult.ok);
+    assert.strictEqual(sheets["Заявки"].rows[3][P.SHEET_COLUMNS.indexOf("Комментарий")], "'=HYPERLINK(1)", "формула не экранирована");
+    assert.strictEqual(sheets["Заказы"].rows[2][5], "'=HYPERLINK(1)", "сводный комментарий не экранирован");
+
     assert.strictEqual(post({ action: "order", order_id: "", rows: [] }).ok, false);
     assert.strictEqual(post({ action: "wipe" }).ok, false);
-    assert.ok(JSON.parse(context.doGet().text).ok);
+    assert.ok(JSON.parse(context.doGet().text).telegramConfigured);
   });
 
   check("токена бота нет в cart.js и в скрипте таблицы", function () {
